@@ -28,14 +28,7 @@ format
 
 ### Running the Scripts
 
-Each script begins with an appropriate shebang, allowing it to be executed directly, for instance
-```bash
-./scriptname.py
-```
-in place of
-```bash
-python3 scriptname.py
-```
+Each script begins with an appropriate shebang, allowing it to be executed directly, for instance with `./scriptname.py` in place of `python3 scriptname.py`.
 
 For maximum convenience, it is recommended to place the desired scripts in a folder linked by the
 `$PATH` environment variable. That is, if the scripts are in `~/scripts`, then the following
