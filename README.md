@@ -8,7 +8,7 @@ As the need arises, I will certainly be expanding my collection of scripts, and 
 
 ### Running the Scripts
 
-Each Python script begins with a *shebang*, allowing it to be executed directly from the command line by typing
+Each script begins with an appropriate shebang, allowing it to be executed directly with, for instance
 ```
 ./scriptname.py
 ```
@@ -17,15 +17,14 @@ in place of
 python3 scriptname.py
 ```
 
-For maximum convenience, it is recommended to place the desired scripts in a folder linked by the ```$PATH``` environment variable. That is, if the scripts are in ```~/scripts```, then the following line is added to the RC file of the shell:
+For maximum convenience, it is recommended to place the desired scripts in a folder linked by the ```$PATH``` environment variable. That is, if the scripts are in ```~/scripts```, then the following line may be added to the shell's RC file, to allow scripts to be executed by name from a terminal open in any directory:
 ```
 export PATH=$PATH:~/scripts
 ```
-This way, the scripts may be executed by name from a terminal open in any directory.
 
 ### Accessing Documentation
 
-Stuff
+The scripts in general may require positional command-line arguments, as well as optional arguments and flags. Argument parsing is done in Python using the ```argparse``` module, and all arguments are thoroughly documented. To view help, simply execute a script with the ```-h``` or ```--help``` flag.
 
 ## Details of Scripts
 
