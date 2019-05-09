@@ -1,10 +1,10 @@
 # CLI Tools
 
-Some command line tools, mostly in Python 3, which automate tasks I frequently find myself performing, including downloading audio from YouTube, editing and merging PDFs, and more.
+Some command line tools, mostly in Python 3, which automate tasks I frequently find myself performing. This includes downloading audio from YouTube, editing and merging PDFs, and more. As the need arises, I will certainly expand this collection.
 
 ## Overview
 
-As the need arises, I will certainly be expanding my collection of scripts, and new additions will be added. Some functionality of certain scripts is really nothing but a wrapper for an underlying command-line utility, such as qpdf or sox; in such cases, the script is designed to simplify the syntax and use of these tools for certain highly specific applications, as needed.
+Scripts range from highly specific in utility (as with, say, ```distribute.py```) to fairly broad. Certain script functionality is really little but a wrapper for an underlying pre-existing command-line utility, such as ```qpdf``` or ```sox```; in such cases, the script is designed to simplify the syntax and make the use of these tools more convenient and intuitive for whatever highly-specific application I have use of.
 
 ### Running the Scripts
 
@@ -24,8 +24,15 @@ export PATH=$PATH:~/scripts
 
 ### Accessing Documentation
 
-The scripts in general may require positional command-line arguments, as well as optional arguments and flags. Argument parsing is done in Python using the ```argparse``` module, and all arguments are thoroughly documented. To view help, simply execute a script with the ```-h``` or ```--help``` flag.
+Each script in general takes positional command-line arguments, as well as optional arguments and flags. Argument parsing is done in Python using the ```argparse``` module, and all arguments are thoroughly documented. To view help, simply execute a script with the ```-h``` or ```--help``` flag.
+
+### Overview of Scripts
+
+* ```distribute.py```       - made for *Toyota Yarris* sound-system; arranges mp3 files alphabetically into directories of 255 each, and compares the files with those in ~/Music
+* ```download-music.py```   - downloads mp3 audio from a list of YouTube (or other) URLs, removing leading and trailing silence
+* ```make-shortcut.sh```    - creates a .desktop shortcut for a URL, for use with Ubuntu
+* ```pdftools.py```         - extract, interleave or rotate pages of PDFs, or find and replace text in a PDF
+* ```pwned.py```            - query [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check whether given password has been leaked in a data breach
+* ```url-desktop.py```      - convert internet shortcuts between Windows (.url) and Ubuntu (.desktop) format
 
 ## Details of Scripts
-
-
