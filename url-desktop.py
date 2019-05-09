@@ -61,13 +61,15 @@ def convert(args):
 
 if __name__ == '__main__':
     # Create argument parser:
-    parser = argparse.ArgumentParser(description='Convert internet shortcuts from Windows format (.url) \
-            to Ubuntu format (.desktop) or vice-versa.')
+    parser = argparse.ArgumentParser(description='Convert internet shortcuts from Windows format \
+            (.url) to Ubuntu format (.desktop) or vice-versa.')
     parser.add_argument('--desktop-to-url', action='store_const', dest='dest_type', const='url',
-            default='desktop', help='convert from .desktop to .url (default converts .url to .desktop)')
+            default='desktop', help='convert from .desktop to .url (default converts .url to \
+                    .desktop)')
     parser.add_argument('input_files', metavar='FILE', nargs='*',
-            help='input file, which must have the correct extension for the current conversion mode, or \
-                    it is ignored (if omitted, convert all relevant files in current directory)')
+            help='input file, which must have the correct extension for the current conversion \
+                    mode, or it is ignored (if omitted, convert all relevant files in current \
+                    directory)')
 
     # Parse args and run command:
     args = parser.parse_args()

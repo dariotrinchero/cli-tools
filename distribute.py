@@ -49,8 +49,8 @@ from itertools import count
 
 
 def get_path(i, f = ''):
-    ''' Returns path of ix255, parent if i==0 or ~/Music if i<0.
-    If f is non-empty, it specifies a file within this folder. '''
+    ''' Returns path of ix255, parent if i==0 or ~/Music if i<0. If f is non-empty, it specifies a
+    file within this folder. '''
     gpath = os.path.dirname(os.path.realpath(sys.argv[0]))
     if i == 0: path = gpath
     elif i < 0: path = os.environ['HOME'] + '/Music'

@@ -46,14 +46,15 @@ def find_matches(hashList, pwHash, pwString):
 
 if __name__ == '__main__':
     # Create argument parser and parse args
-    parser = argparse.ArgumentParser(description='Reads in passwords and checks whether matching passwords \
-            have been leaked in data breaches. For this it queries the "Have I Been Pwned" API described at \
-            https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange and searches through the results \
-            for matching passwords.')
+    parser = argparse.ArgumentParser(description='Reads in passwords and checks whether matching \
+            passwords have been leaked in data breaches. For this it queries the "Have I Been \
+            Pwned" API described at https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsBy\
+            Range and searches through the results for matching passwords.')
     parser.add_argument('--reveal', action='store_true',
             help='show entered password in plaintext (default behaviour hides entry)')
     parser.add_argument('--loop', action='store_true',
-            help='keep prompting for passwords until given EOF or empty input (default checks single password)')
+            help='keep prompting for passwords until given EOF or empty input (default checks \
+                    single password)')
     args = parser.parse_args()
 
     while True:

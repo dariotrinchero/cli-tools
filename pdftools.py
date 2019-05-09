@@ -60,7 +60,8 @@ def splice(args):
 
 def rotate(args):
     ''' Rotate specified pages of pdf by specified angle '''
-    subprocess.run(['qpdf', args.input_file, args.output_file, '--rotate=' + args.angle + ':' + args.pages])
+    subprocess.run(['qpdf', args.input_file, args.output_file, '--rotate=' + args.angle + ':'
+        + args.pages])
 
 if __name__ == '__main__':
     # Top-level parser:
@@ -88,15 +89,16 @@ if __name__ == '__main__':
             (default ignores formatting characters in qdf)')
     parser_replace.add_argument('--ignore-case', dest='ignore_case', action='store_true',
             help='ignore case when searching (default is case-sensitive)')
-    parser_replace.add_argument('find_text', metavar='FIND_TEXT', help='text to search for in input pdf')
+    parser_replace.add_argument('find_text', metavar='FIND_TEXT', help='text to search for in \
+            input pdf')
     parser_replace.add_argument('input_file', metavar='INPUT', help='input file')
     parser_replace.add_argument('output_file', metavar='OUTPUT', help='output file')
     parser_replace.set_defaults(func=replace)
 
     # Parser for "rotate":
     parser_rotate = subparsers.add_parser('rotate',
-            help='rotate pages in pdf; can cause issues with some elements being incorrectly placed, \
-                    such as with fillable form inputs')
+            help='rotate pages in pdf; can cause issues with some elements being incorrectly \
+                    placed, such as with fillable form inputs')
     parser_rotate.add_argument('--angle', metavar='ANGLE', default='+90',
             help='angle to rotate (90, 180 or 270); if preceded by + or -, given angle is added to \
                     or subtracted from current angle (default is +90)')
