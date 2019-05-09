@@ -4,7 +4,7 @@ Some command line tools, mostly in Python 3, which automate tasks I frequently f
 
 ## Overview
 
-Scripts range from highly specific in utility (as with, say, ```distribute.py```) to fairly broad (as with, say ```pdftools.py```). Certain script functionality is really little but a wrapper for an underlying pre-existing command-line utility, such as ```qpdf``` or ```sox```; in such cases, the script is designed to simplify the syntax and make the use of these tools more convenient and intuitive for whatever highly-specific application I have use of.
+Scripts range from highly specific in utility (as with, say, ```distribute.py```) to fairly broad (as with, say, ```pdftools.py```). Certain script functionality is really little but a wrapper for an underlying pre-existing command-line utility, such as ```qpdf``` or ```sox```; in such cases, the script is designed to simplify the syntax and make the use of these tools more convenient and intuitive for whatever highly-specific application I have use of.
 
 ### Overview of Scripts
 
