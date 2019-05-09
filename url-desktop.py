@@ -21,51 +21,51 @@ import os
 #
 
 
-def get_url(f, extension, output=True):
+def get_url(f, extension):
+    ''' Given a filename, f, if the file has the correct extension (.url or .desktop),
+    extract the URL contained in the file '''
     if f not in os.listdir():
-        if output: print('WARNING: Ignoring file %s which was not found in current directory.' % f)
+        print('WARNING: Ignoring file %s which was not found in current directory.' % f)
         return ''
     if not f.endswith(extension):
-        if output:
-            print('WARNING: Ignoring file %s which does not have %s extension.' % (f, extension))
+        print('WARNING: Ignoring file %s which does not have %s extension.' % (f, extension))
         return ''
     with open(f, 'r') as oldf:
         for line in oldf:
             if 'URL=' in line: return line.strip().split('=')[1]
         else:
-            if output: print('WARNING: Ignoring file %s which does not contain URL' % f)
+            print('WARNING: Ignoring file %s which does not contain URL' % f)
             return ''
 
-def convert(args):
-    if args.input_files == []: input_files = os.listdir()
-    else: input_files = args.input_files
+def convert(input_files, desktop_to_url = False):
+    ''' Convert all .url files in input_files (list of file names) to .desktop, or vice-versa if
+    desktop_to_url is True, ignoring files without correct extension '''
+    if desktop_to_url: ext = '.desktop'
+    else: ext = '.url'
+
+    if input_files == []: input_files = filter(lambda f: f.endswith(ext), os.listdir())
 
     for f in input_files:
-        if args.dest_type == 'desktop':
-            url = get_url(f, '.url', args.input_files != [])
-            site = f[:-4]
-        else:
-            url = get_url(f, '.desktop', args.input_files != [])
-            site = f[:-8]
-
+        url = get_url(f, ext)
         if url == '': continue
 
-        with open(site + '.' + args.dest_type, 'w') as newf:
-            if args.dest_type == 'desktop':
-                newf.write(('[Desktop Entry]\nEncoding=UTF-8\nName=%s\n' +
-                        'Type=Link\nURL=%s\nIcon=firefox\nName[en-ZA]=%s') % (site, url, site))
-            else:
+        if desktop_to_url: site = f[:-8]
+        else: site = f[:-4]
+
+        with open(site + '.' + ('url' if desktop_to_url else 'desktop'), 'w') as newf:
+            if desktop_to_url:
                 newf.write(('[{000214A0-0000-0000-C000-000000000046}]\n' +
                         'Prop3=19,11\n[InternetShortcut]\nIDList=\nURL=%s') % url)
-
+            else:
+                newf.write(('[Desktop Entry]\nEncoding=UTF-8\nName=%s\n' +
+                        'Type=Link\nURL=%s\nIcon=firefox\nName[en-ZA]=%s') % (site, url, site))
 
 if __name__ == '__main__':
     # Create argument parser:
     parser = argparse.ArgumentParser(description='Convert internet shortcuts from Windows format \
             (.url) to Ubuntu format (.desktop) or vice-versa.')
-    parser.add_argument('--desktop-to-url', action='store_const', dest='dest_type', const='url',
-            default='desktop', help='convert from .desktop to .url (default converts .url to \
-                    .desktop)')
+    parser.add_argument('--desktop-to-url', action='store_true', dest='desktop_to_url',
+            help='convert from .desktop to .url (default converts .url to .desktop)')
     parser.add_argument('input_files', metavar='FILE', nargs='*',
             help='input file, which must have the correct extension for the current conversion \
                     mode, or it is ignored (if omitted, convert all relevant files in current \
@@ -73,4 +73,4 @@ if __name__ == '__main__':
 
     # Parse args and run command:
     args = parser.parse_args()
-    convert(args)
+    convert(args.input_files, args.desktop_to_url)

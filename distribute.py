@@ -10,41 +10,38 @@ from itertools import count
 # Usage:
 #---------------------------------------------------------------------------------------------------
 #
-# $ python3 distribute.py [flags]
+# $ python3 distribute.py [--nocompare]
 #
 #---------------------------------------------------------------------------------------------------
 # Functionality:
 #---------------------------------------------------------------------------------------------------
 #
-# Note: Herein "parent" is used to refer to the directory containing this script.
+# We refer to the directory containing this script as the "parent" directory.
 #
-# Sorts all .mp3 files in the parent directory alphabetically into sub-directories named
-# "1x255", "2x255", ..., each containing 255 files.
+# Sorts .mp3 files in parent directory alphabetically into sub-directories "1x255", "2x255", ...,
+# each containing 255 files. Logs destinations of all files moved, & warns user if any files in
+# either parent directory or any sub-directory are not present (with the same name) in ~/Music, as
+# well as if they differ from those in ~/Music.
 #
-# Logs the destinations of all files moved, and warns the user if any of the files in either the
-# parent directory or any of the sub-directories do not exist (with the same name) in ~/Music, or
-# if the equivalent file in ~/Music differs from the file in question.
-#
-# The purpose of this script is to divide music on a USB flash drive into directories of no more
-# than 255 files each, as required by the sound system of the Toyota Yarris, in a way which is
-# logical and systematic. In addition, the script notifies the user if the music on the USB drive
-# is out-of-sync with the main music library in ~/Music (such as if a song is cropped, or tags are
-# updated).
+# This script is intended to divide music on a flash drive into directories of up to 255 files each,
+# as required by the Toyota Yarris sound system. In addition, the script notifies the user if the
+# music on the USB drive is out-of-sync with the main music library in ~/Music (as might happen if a
+# song is edited or its tags updated).
 #
 #---------------------------------------------------------------------------------------------------
 # Limitations:
 #---------------------------------------------------------------------------------------------------
 #
-# The script assumes that files already within the sub-directories of the parent directory ("1x255",
-# "2x255", ...) are sorted in alphabetical order. Thus, when redistributing, only the first or last
-# few files in each folder are ever moved. Thus, the script will not detect if, say, all folders
-# contain the correct number of files, but one file is in the wrong folder.
+# The script assumes that files within sub-directories of parent directory ("1x255", "2x255", ...)
+# are already sorted alphabetically. Thus, when redistributing, only the first or last few files in
+# each folder are moved. Hence, the script will not detect if, say, all folders contain the correct
+# number of files, but one file is in the wrong folder.
 #
 #---------------------------------------------------------------------------------------------------
 # Command line arguments:
 #---------------------------------------------------------------------------------------------------
 #
-# nocompare	do not compare contents of files to those in ~/Music
+# --nocompare	do not compare contents of files to those in ~/Music
 #
 
 
@@ -80,27 +77,27 @@ def check_synched(f, i, compare = True):
             shutil.copy(get_path(-1, f), get_path(i, f))
             print('File updated.')
 
-moved = {} # Stores final destinations of all files moved
+moved = {} # Stores final destinations of files moved
 parent_files = files(0)
-args = sys.argv
 
-# Move all .mp3 files from parent into 1x255
-for f in parent_files:
-    if f[-4:] == '.mp3': move(f, 0, 1)
+if __name__ == '__main__':
+    # Move all .mp3 files from parent into 1x255
+    for f in parent_files:
+        if f[-4:] == '.mp3': move(f, 0, 1)
 
-# Redistribute files and check against ~/Music
-for i in count(1):
-    if str(i) + 'x255' in parent_files:
-        ifiles = files(i)
-        for f in ifiles: check_synched(f, i, not 'nocompare' in args)
+    # Redistribute files & check against ~/Music
+    for i in count(1):
+        if str(i) + 'x255' in parent_files:
+            ifiles = files(i)
+            for f in ifiles: check_synched(f, i, not '--nocompare' in sys.argv)
 
-        n = len(ifiles)
-        if n > 255:
-            for f in ifiles[255:]: move(f, i, i + 1)
-        elif n < 255 and str(i + 1) + 'x255' in parent_files:
-            for f in files(i + 1)[:255 - n]: move(f, i + 1, i)
-    else: break
+            n = len(ifiles)
+            if n > 255:
+                for f in ifiles[255:]: move(f, i, i + 1)
+            elif n < 255 and str(i + 1) + 'x255' in parent_files:
+                for f in files(i + 1)[:255 - n]: move(f, i + 1, i)
+        else: break
 
-# Report changes (a single file moved many times is reported only once)
-for f in moved: print('Moved "' + f + '" into ' + moved[f])
+    # Report changes (a single file moved many times is reported once)
+    for f in moved: print('Moved "' + f + '" into ' + moved[f])
 
