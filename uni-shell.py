@@ -62,18 +62,22 @@ def launch_vpn(vpn_path, server, username, password):
 
         vpn.waitnoecho()
         vpn.sendline(password)
-        vpn.expect('(Y/N)')
-        vpn.sendline('y')
 
         print('Waiting for vpn tunnel...')
-        response = vpn.expect(['Tunnel running', 'Set up tunnel failed', pexpect.EOF,
-            pexpect.TIMEOUT])
-        if response == 0: return vpn
 
-        if response == 1 or response == 2: print('ERROR. Failed to launch tunnel; check password.')
-        elif response == 3: print('ERROR. Timeout while trying to launch tunnel.')
-        vpn.close()
-        return None
+        while True:
+            response = vpn.expect(['(Y/N)', 'Tunnel running', 'tunnel failed', pexpect.EOF,
+                pexpect.TIMEOUT])
+
+            if response == 0: vpn.sendline('y') # Respond yes to any prompts
+            elif response == 1: return vpn
+            elif response <= 3: print('ERROR: Failed to launch tunnel; check password.')
+            else: print('ERROR: Timeout while trying to launch tunnel.')
+
+            if response > 1: # If error occurred
+                vpn.close()
+                return None
+
     except pexpect.exceptions.ExceptionPexpect:
         print('ERROR: Invalid vpn path.')
         return None
@@ -101,12 +105,12 @@ if __name__ == '__main__':
     parser.add_argument('--hostname', action='store', default='open.rga.stb.sun.ac.za',
             help='hostname to connect to with ssh / sftp (default "open.rga.stb.sun.ac.za")')
     parser.add_argument('--vpn-path', action='store', dest='vpn_path', default=vpn_path,
-            help='path to FortiClient CLI binary to run (defaults to $FORTICLIENT environment \
-                    variable)')
+            help='path to FortiClient CLI binary to run (defaults to string contained in \
+                    $FORTICLIENT environment variable)')
     args = parser.parse_args()
 
     if args.vpn_path == None:
-        print('ERROR: --vpn_path not given and $FORTICLIENT not set.')
+        print('ERROR: --vpn-path not given and $FORTICLIENT not set.')
         sys.exit(1)
 
     # Execute relevant functions
