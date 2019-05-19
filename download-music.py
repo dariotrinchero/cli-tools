@@ -10,13 +10,10 @@ import os
 #---------------------------------------------------------------------------------------------------
 #
 # Expects a song list in folder of execution, which is ~/Downloads unless run with --wd. This file
-# is given by --song-list (defaults to "song-list.txt"), and should contain URLs of all videos to be
+# is given by --song-list (defaults to "song-list.txt"), & should contain URLs of all videos to be
 # downloaded, separated by newlines. The song list is cleared on success unless run with --noclear.
 # The script will also trim leading & trailing silence from all .mp3 files in folder of execution
 # unless run with --notrim.
-#
-# Many more sites than YouTube are supported, including SoundCloud, Bandcamp, & others listed at:
-#  https://rg3.github.io/youtube-dl/supportedsites.html
 #
 #---------------------------------------------------------------------------------------------------
 # Dependencies & Manuals:
@@ -24,7 +21,6 @@ import os
 #
 # sox           http://sox.sourceforge.net/sox.html
 # youtube-dl    https://rg3.github.io/youtube-dl/
-# argparse      https://docs.python.org/3/library/argparse.html
 #
 
 
@@ -73,10 +69,10 @@ def trim_mp3s(quiet):
 
 if __name__ == '__main__':
     # Create argument parser and parse args
-    parser = argparse.ArgumentParser(description='Downloads .mp3 files from YouTube, Soundcloud,\
-            Bandcamp and more, using youtube-dl (https://rg3.github.io/youtube-dl/), and trims\
-            silence from downloaded files. URLs of songs to download should be given in the\
-            file specified by --song-list, separated by newlines. All supported websites are\
+    parser = argparse.ArgumentParser(description='Downloads .mp3 files from YouTube, Soundcloud, \
+            Bandcamp and more, using youtube-dl (https://rg3.github.io/youtube-dl/), and trims \
+            silence from downloaded files. URLs of songs to download should be given in the \
+            file specified by --song-list, separated by newlines. All supported websites are \
             listed at https://rg3.github.io/youtube-dl/supportedsites.html')
     parser.add_argument('--song-list', action='store', dest='song_list', default='song-list.txt',
             metavar='FILE', help='file containing URLs to download (defaults to "song-list.txt")')

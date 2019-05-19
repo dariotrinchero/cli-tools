@@ -13,12 +13,6 @@ import os
 # Convert all .desktop files in current directory:
 #  $ url-desktop.py --desktop-to-url
 #
-#---------------------------------------------------------------------------------------------------
-# Dependencies & Manuals:
-#---------------------------------------------------------------------------------------------------
-#
-# argparse:     https://docs.python.org/3/library/argparse.html
-#
 
 
 def get_url(f, extension):

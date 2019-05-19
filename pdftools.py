@@ -24,8 +24,7 @@ import re
 # Dependencies & Manuals:
 #---------------------------------------------------------------------------------------------------
 #
-# qpdf          /usr/share/doc/qpdf/qpdf-manual.html
-# argparse      https://docs.python.org/3/library/argparse.html
+# qpdf      /usr/share/doc/qpdf/qpdf-manual.html
 #
 
 

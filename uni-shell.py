@@ -21,8 +21,6 @@ from os import environ
 # Dependencies & Manuals:
 #---------------------------------------------------------------------------------------------------
 #
-# pexpect       https://pexpect.readthedocs.io/en/stable/api/index.html
-# argparse      https://docs.python.org/3/library/argparse.html
 # FortiClient   https://kb.fortinet.com/kb/documentLink.do?externalID=FD41256
 #
 

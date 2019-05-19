@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import shutil
 import sys
@@ -7,41 +8,14 @@ import filecmp
 from itertools import count
 
 #---------------------------------------------------------------------------------------------------
-# Usage:
+# Usage Notes & Examples (run with -h for full help):
 #---------------------------------------------------------------------------------------------------
 #
-# $ python3 distribute.py [--nocompare]
+# Distribute & compare contents to ~/Music
+#  $ distribute.py
 #
-#---------------------------------------------------------------------------------------------------
-# Functionality:
-#---------------------------------------------------------------------------------------------------
-#
-# We refer to the directory containing this script as the "parent" directory.
-#
-# Sorts .mp3 files in parent directory alphabetically into sub-directories "1x255", "2x255", ...,
-# each containing 255 files. Logs destinations of all files moved, & warns user if any files in
-# either parent directory or any sub-directory are not present (with the same name) in ~/Music, as
-# well as if they differ from those in ~/Music.
-#
-# This script is intended to divide music on a flash drive into directories of up to 255 files each,
-# as required by the Toyota Yarris sound system. In addition, the script notifies the user if the
-# music on the USB drive is out-of-sync with the main music library in ~/Music (as might happen if a
-# song is edited or its tags updated).
-#
-#---------------------------------------------------------------------------------------------------
-# Limitations:
-#---------------------------------------------------------------------------------------------------
-#
-# The script assumes that files within sub-directories of parent directory ("1x255", "2x255", ...)
-# are already sorted alphabetically. Thus, when redistributing, only the first or last few files in
-# each folder are moved. Hence, the script will not detect if, say, all folders contain the correct
-# number of files, but one file is in the wrong folder.
-#
-#---------------------------------------------------------------------------------------------------
-# Command line arguments:
-#---------------------------------------------------------------------------------------------------
-#
-# --nocompare	do not compare contents of files to those in ~/Music
+# Distribute without comparing contents to ~/Music
+#  $ distribute.py --nocompare
 #
 
 
@@ -71,6 +45,9 @@ def check_synched(f, i, compare = True):
     ''' Check that file given by get_path(i, f) corresponds to one in ~/Music '''
     if not os.path.isfile(get_path(-1, f)):
         print('No file named "' + f + '" exists in ~/Music')
+        if input('Remove file? [y/n]: ') in 'yY':
+            os.remove(get_path(i, f))
+            print('File removed.')
     elif compare and not filecmp.cmp(get_path(-1, f), get_path(i, f)):
         print('File "' + f + '" differs from that in ~/Music')
         if input('Update file? [y/n]: ') in 'yY':
@@ -81,6 +58,19 @@ moved = {} # Stores final destinations of files moved
 parent_files = files(0)
 
 if __name__ == '__main__':
+    # Create argument parser and parse args
+    parser = argparse.ArgumentParser(description='Sorts .mp3 files in containing directory \
+            alphabetically into sub-directories "1x255", "2x255", ..., each with 255 files. \
+            Outputs all files moved, and whether any .mp3 files are not present with the same name \
+            and content in ~/Music (as might happen if a song is edited). This is designed to \
+            divide music for the Toyota Yarris sound system. The script assumes that existing \
+            files in "1x255", "2x255", ... are already sorted alphabetically. Thus only the first \
+            or last files in each directory are ever moved.')
+    parser.add_argument('--nocompare', action='store_false', dest='compare',
+            help='do not compare contents of files to those in ~/Music')
+
+    args = parser.parse_args()
+
     # Move all .mp3 files from parent into 1x255
     for f in parent_files:
         if f[-4:] == '.mp3': move(f, 0, 1)
@@ -89,7 +79,7 @@ if __name__ == '__main__':
     for i in count(1):
         if str(i) + 'x255' in parent_files:
             ifiles = files(i)
-            for f in ifiles: check_synched(f, i, not '--nocompare' in sys.argv)
+            for f in ifiles: check_synched(f, i, args.compare)
 
             n = len(ifiles)
             if n > 255:
