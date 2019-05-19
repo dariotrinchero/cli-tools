@@ -54,7 +54,7 @@ flag.
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
 * `uni-shell.py` requires [FortiClient VPN](https://forticlient.com/downloads)
 
-### Potential Issues
+## Potential Issues
 
 * `uni-shell.py` was written for a specific application. It functions by spawning processes, then
   expecting specific output and responding. It is likely that different versions of *FortiClient*
