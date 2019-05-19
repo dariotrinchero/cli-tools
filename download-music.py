@@ -48,7 +48,7 @@ def download(song_list, quiet, force, playlist):
 
     # Download & quit with error if download fails
     if subprocess.run(['youtube-dl'] + dl_args).returncode != 0:
-        print('ERROR: Could not download from list')
+        print('ERROR: Could not download from list. Try "sudo youtube-dl -U".')
         exit(1)
 
 def trim_mp3s(quiet):
