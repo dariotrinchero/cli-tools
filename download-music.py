@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     # Execute relevant functions
     try:
-        check_dir(args.wd, args.song_list, args.download and args.clear)
+        check_dir(args.wd, args.song_list, args.download)
 
         if args.download:
             download(args.song_list, args.quiet, args.force, args.playlist)
