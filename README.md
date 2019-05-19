@@ -6,10 +6,10 @@ the need arises, I will certainly expand this collection.
 
 ## Overview
 
-Scripts range from highly specific in utility (such as `distribute.py`) to fairly broad (such 
-as `pdftools.py`). Certain script functionality is little but a wrapper for a pre-existing
-command line utility like `qpdf` or `sox`; in such cases, the script is designed to simplify
-the syntax and make the use of these tools more convenient and intuitive for whatever
+Scripts range from highly specific in utility (such as `distribute.py` or `uni-shell.py`) to fairly
+broad (such as `pdftools.py`). Certain script functionality is little but a wrapper for a
+pre-existing command line utility like `qpdf` or `sox`; in such cases, the script is designed to
+simplify the syntax and make the use of these tools more convenient and intuitive for whatever
 highly-specific application I require.
 
 ### Description of Scripts
@@ -23,6 +23,8 @@ leading and trailing silence
 * `pwned.py` - query
 [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
 whether a given password has been leaked in a data breach
+* `uni-shell.py` - made for *Stellenbosch University* Ubuntu servers; launch FortiClient VPN tunnel
+then connect to given host with SSH or SFTP, and transfer control to user
 * `url-desktop.py` - convert internet shortcuts between Windows (.url) and Ubuntu (.desktop)
 format
 
@@ -50,6 +52,7 @@ flag.
 * `download-music.py` requires command line tools [SoX](http://sox.sourceforge.net/) and 
 [youtube-dl](https://ytdl-org.github.io/youtube-dl/index.html)
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
+* `uni-shell.py` requires [FortiClient VPN](https://forticlient.com/downloads)
 
 ## Contributing
 
