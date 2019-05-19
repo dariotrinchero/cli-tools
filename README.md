@@ -56,10 +56,10 @@ flag.
 
 ### Potential Issues
 
-* `uni-shell.py` was written with a very specific application in mind. It functions by spawning the
-  relevant processes, then expecting specific output and responding. It is possible that different
-  versions of FortiClient or different hosts will cause the expected output to differ; the script 
-  will require modification to function.
+* `uni-shell.py` was written for a specific application. It functions by spawning processes, then
+  expecting specific output and responding. It is likely that different versions of *FortiClient*
+  or different hosts will cause the expected output to differ. If so, the script will require 
+  basic modification to function.
 
 ## Contributing
 
