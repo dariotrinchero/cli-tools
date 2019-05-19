@@ -14,28 +14,28 @@ highly-specific application I require.
 
 ### Description of Scripts
 
-* `distribute.py` - made for *Toyota Yarris* sound-system; arranges mp3 files alphabetically
-into directories of 255 each, and compares the files with those in `~/Music`
-* `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing
-leading and trailing silence
+* `distribute.py` - made for *Toyota Yarris* sound-system; arranges mp3 files alphabetically into
+  directories of 255 each, and compares the files with those in `~/Music`
+* `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
+  leading and trailing silence
 * `make-shortcut.sh` - creates a .desktop shortcut for a URL, for use with Ubuntu
 * `pdftools.py` - extract, interleave or rotate pages of PDFs, or find and replace text in a PDF
 * `pwned.py` - query
-[HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
-whether a given password has been leaked in a data breach
+  [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
+  whether a given password has been leaked in a data breach
 * `uni-shell.py` - made for *Stellenbosch University* Ubuntu servers; launch FortiClient VPN tunnel
-then connect to given host with SSH or SFTP, and transfer control to user
-* `url-desktop.py` - convert internet shortcuts between Windows (.url) and Ubuntu (.desktop)
-format
+  then connect to given host with SSH or SFTP, and transfer control to user
+* `url-desktop.py` - convert internet shortcuts between Windows (.url) and Ubuntu (.desktop) format
 
 ### Running the Scripts
 
-Each script begins with an appropriate shebang, allowing it to be executed directly, for instance with `./scriptname.py` in place of `python3 scriptname.py`.
+Each script begins with an appropriate shebang, allowing it to be executed directly, for instance 
+with `./scriptname.py` in place of `python3 scriptname.py`.
 
 For maximum convenience, it is recommended to place the desired scripts in a folder linked by the
-`$PATH` environment variable. That is, if the scripts are in `~/scripts`, then the following
-line may be added to the shell's RC file, to allow scripts to be executed by name from a terminal
-open in any directory:
+`$PATH` environment variable. That is, if the scripts are in `~/scripts`, then the following line
+may be added to the shell's RC file, to allow scripts to be executed by name from a terminal open 
+in any directory:
 ```bash
 export PATH=$PATH:~/scripts
 ```
@@ -50,9 +50,16 @@ flag.
 ## Prerequisites
 
 * `download-music.py` requires command line tools [SoX](http://sox.sourceforge.net/) and 
-[youtube-dl](https://ytdl-org.github.io/youtube-dl/index.html)
+  [youtube-dl](https://ytdl-org.github.io/youtube-dl/index.html)
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
 * `uni-shell.py` requires [FortiClient VPN](https://forticlient.com/downloads)
+
+### Potential Issues
+
+* `uni-shell.py` was written with a very specific application in mind. It functions by spawning the
+  relevant processes, then expecting specific output and responding. It is possible that different
+  versions of FortiClient or different hosts will cause the expected output to differ; the script 
+  will require modification to function.
 
 ## Contributing
 
