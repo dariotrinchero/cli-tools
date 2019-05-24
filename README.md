@@ -18,7 +18,8 @@ highly-specific application I require.
   directories of 255 each, and compares the files with those in `~/Music`
 * `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
   leading and trailing silence
-* `make-shortcut.sh` - creates a .desktop shortcut for a URL, for use with Ubuntu
+* `make-shortcut.py` - creates .desktop shortcut for a URL, with options to retrieve URL from
+  clipboard, or to use (sanitised) webpage title for shortcut name
 * `pdftools.py` - extract, interleave or rotate pages of PDFs, or find and replace text in a PDF
 * `pwned.py` - query
   [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
