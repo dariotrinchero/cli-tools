@@ -29,7 +29,7 @@ def get_hashes(password):
     pwHash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
     try: hashList = requests.get(url = 'https://api.pwnedpasswords.com/range/{}'.format(pwHash[:5]))
     except:
-        print('Cannot connect to API.')
+        print('ERROR: Cannot connect to API.')
         hashList = None
     return pwHash, hashList
 

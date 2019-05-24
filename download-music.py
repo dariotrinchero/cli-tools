@@ -29,7 +29,7 @@ def check_dir(wd, song_list, file_needed):
     if not wd: os.chdir(os.path.expanduser('~/Downloads'))
 
     if file_needed and not os.path.isfile(song_list):
-        print('ERROR: Could not find song list "%s"' % song_list)
+        print('ERROR: Could not find song list "%s".' % song_list)
         exit(1)
 
 def download(song_list, quiet, force, playlist):
@@ -60,7 +60,7 @@ def trim_mp3s(quiet):
             # Report success or failure
             if exit1 == 0 and exit2 == 0:
                 if not quiet: print('Silence trimmed from %s' % f)
-            else: print('ERROR: Could not trim silence from %s' % f)
+            else: print('ERROR: Could not trim silence from %s.' % f)
 
     # Remove temporary file _tmpsoxout.mp3
     if os.path.isfile('_tmpsoxout.mp3'):
