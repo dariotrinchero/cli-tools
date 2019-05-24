@@ -65,7 +65,3 @@ flag.
 ## Contributing
 
 Pull requests are welcome - in fact, encouraged.
-
-## Licence
-
-This project is licensed under the [MIT](https://choosealicense.com/licenses/mit/) licence.
