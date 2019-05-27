@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
+from sys import exit
 from tkinter import Tk # Read clipboard contents
 from urllib.parse import urlparse # Validate URL
 import requests # Get HTML and extract <title>
@@ -50,9 +50,7 @@ def get_site(url):
         valid = all([parsed.scheme, parsed.netloc, parsed.path])
     except: valid = False
 
-    if not valid:
-        print('ERROR: "{}" is an invalid URL.'.format(url))
-        sys.exit(1)
+    if not valid: exit('ERROR: "{}" is an invalid URL.'.format(url))
 
     return parsed.netloc
 
@@ -67,18 +65,12 @@ def get_name(url, site=None, trim=True):
 
         return format_name(name, site, trim)
     except requests.exceptions.HTTPError:
-        print('ERROR: Request to URL "{}" returned bad status code {}.'.format(url,
+        exit('ERROR: Request to URL "{}" returned bad status code {}.'.format(url,
             response.status_code))
-        sys.exit(1)
-    except requests.exceptions.Timeout:
-        print('ERROR: Request to URL "{}" timed-out.'.format(url))
-        sys.exit(1)
-    except ConnectionError:
-        print('ERROR: Connection error while accessing URL "{}".'.format(url))
-        sys.exit(1)
+    except requests.exceptions.Timeout: exit('ERROR: Request to URL "{}" timed-out.'.format(url))
+    except ConnectionError: exit('ERROR: Connection error while accessing URL "{}".'.format(url))
     except requests.exceptions.TooManyRedirects:
-        print('ERROR: Too many redirects while accessing URL "{}".'.format(url))
-        sys.exit(1)
+        exit('ERROR: Too many redirects while accessing URL "{}".'.format(url))
 
 def format_name(name, site=None, trim=True):
     ''' Sanitise given Unix file name, and optionally trim names from known sites. '''

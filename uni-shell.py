@@ -107,9 +107,7 @@ if __name__ == '__main__':
                     $FORTICLIENT environment variable)')
     args = parser.parse_args()
 
-    if args.vpn_path == None:
-        print('ERROR: --vpn-path not given and $FORTICLIENT not set.')
-        sys.exit(1)
+    if args.vpn_path == None: sys.exit('ERROR: --vpn-path not given and $FORTICLIENT not set.')
 
     # Execute relevant functions
     password = get_password(args.reveal)
@@ -117,6 +115,6 @@ if __name__ == '__main__':
 
     vpn = launch_vpn(args.vpn_path, args.server, args.username, password)
     if vpn != None:
-        launch_shell(args.username + '@'  + args.hostname, password, protocol=args.protocol)
+        launch_shell(args.username + '@' + args.hostname, password, protocol=args.protocol)
         vpn.close()
     else: sys.exit(1)

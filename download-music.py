@@ -29,8 +29,7 @@ def check_dir(wd, song_list, file_needed):
     if not wd: os.chdir(os.path.expanduser('~/Downloads'))
 
     if file_needed and not os.path.isfile(song_list):
-        print('ERROR: Could not find song list "%s".' % song_list)
-        exit(1)
+        exit('ERROR: Could not find song list "%s".' % song_list)
 
 def download(song_list, quiet, force, playlist):
     ''' Download all songs listed in song_list using youtube-dl, with given parameters '''
@@ -44,8 +43,7 @@ def download(song_list, quiet, force, playlist):
 
     # Download & quit with error if download fails
     if subprocess.run(['youtube-dl'] + dl_args).returncode != 0:
-        print('ERROR: Could not download from list. Try "sudo youtube-dl -U".')
-        exit(1)
+        exit('ERROR: Could not download from list. Try "sudo youtube-dl -U".')
 
 def trim_mp3s(quiet):
     ''' Trim silence from beginning and end of all .mp3 files in current directory '''
