@@ -28,6 +28,7 @@ from html import unescape # Expand HTML character entities
 #---------------------------------------------------------------------------------------------------
 known_sites = {
     'www.youtube.com':      (' - YouTube$', ''),
+    'youtu.be':             (' - YouTube$', ''),
     'stackoverflow.com':    ('([a-z]+ - )?(.*?)( - Stack Overflow$)', lambda m: m.group(2)),
     'en.wikipedia.org':     (' - Wikipedia$', ''),
     'www.reddit.com':       (' : .*?$', '') # Remove subreddit name
