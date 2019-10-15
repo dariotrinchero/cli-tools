@@ -109,5 +109,5 @@ if __name__ == '__main__':
 
     # Parse args and run command:
     args = parser.parse_args()
-    if len(vars(args)) > 0: args.func(args)
-    else: print('ERROR: No function selected. Run with -h flag to view arguments.')
+    try: args.func(args)
+    except AttributeError: parser.error('no sub-command given')
