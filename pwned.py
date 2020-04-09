@@ -48,8 +48,8 @@ if __name__ == '__main__':
     # Create argument parser and parse args
     parser = argparse.ArgumentParser(description='Reads in passwords and checks whether matching \
             passwords have been leaked in data breaches. For this it queries the "Have I Been \
-            Pwned" API described at https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsBy\
-            Range and searches through the results for matching passwords.')
+            Pwned" API detailed at https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange\
+            and searches through the results for matching passwords.')
     parser.add_argument('--reveal', action='store_true',
             help='show entered password in plaintext (default behaviour hides entry)')
     parser.add_argument('--loop', action='store_true',
