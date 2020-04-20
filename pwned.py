@@ -21,27 +21,28 @@ def get_password(reveal):
         else: password = getpass.getpass('Enter password: ')
     except (EOFError, KeyboardInterrupt): password = '' # Ctrl + D / Ctrl + C
 
-    pwString = '"%s"' % password if reveal else 'Given password'
-    return password, pwString
+    pw_str = '"%s"' % password if reveal else 'Given password'
+    return password, pw_str
 
 def get_hashes(password):
     ''' Hash given password and retrieve list of hashes matching prefix of hash '''
-    pwHash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
-    try: hashList = requests.get(url = 'https://api.pwnedpasswords.com/range/{}'.format(pwHash[:5]))
+    pw_hash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+    try:
+        hash_list = requests.get(url='https://api.pwnedpasswords.com/range/{}'.format(pw_hash[:5]))
     except:
         print('ERROR: Cannot connect to API.')
-        hashList = None
-    return pwHash, hashList
+        hash_list = None
+    return pw_hash, hash_list
 
-def find_matches(hashList, pwHash, pwString):
+def find_matches(hash_list, pw_hash, pw_str):
     ''' Check given list of hashes for exact matches with given hash, and report matches '''
-    for match in hashList.text.split('\r\n'):
+    for match in hash_list.text.split('\r\n'):
         split = match.split(':')
-        if pwHash[5:] == split[0]:
+        if pw_hash[5:] == split[0]:
             occurrences = '{:,d} occurrence{}'.format(int(split[1]), '' if split[1] == '1' else 's')
-            print('%s was found\nHash %s\t%s' % (pwString, pwHash, occurrences))
+            print('%s was found\nHash %s\t%s' % (pw_str, pw_hash, occurrences))
             break
-    else: print('%s was not found' % pwString)
+    else: print('%s was not found' % pw_str)
 
 
 if __name__ == '__main__':
@@ -58,11 +59,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     while True:
-        password, pwString = get_password(args.reveal)
+        password, pw_str = get_password(args.reveal)
         if password == '': break
 
-        pwHash, hashList = get_hashes(password)
-        if hashList == None: break
+        pw_hash, hash_list = get_hashes(password)
+        if hash_list == None: break
 
-        find_matches(hashList, pwHash, pwString)
+        find_matches(hash_list, pw_hash, pw_str)
         if not args.loop: break
