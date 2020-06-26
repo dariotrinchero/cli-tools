@@ -13,7 +13,6 @@ import argparse
 #  $ pwned.py --loop --reveal
 #
 
-
 def get_password(reveal):
     ''' Read in a password, optionally showing text, and handling exceptions '''
     try:
@@ -27,7 +26,7 @@ def get_password(reveal):
 def get_hashes(password):
     ''' Hash given password and retrieve list of hashes matching prefix of hash '''
     pw_hash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
-    try: hash_list = requests.get(url='https://api.pwnedpasswords.com/range/{}'.format(pw_hash[:5]),
+    try: hash_list = requests.get(url='https://api.pwnedpasswords.com/range/%s' % pw_hash[:5],
                 headers={'Add-Padding': 'true'})
     except: hash_list = None
     return pw_hash, hash_list
@@ -43,18 +42,12 @@ def find_matches(hash_list, pw_hash, pw_str):
             break
     else: print('%s was not found' % pw_str)
 
-
 if __name__ == '__main__':
     # Create argument parser and parse args
-    parser = argparse.ArgumentParser(description='Reads in passwords and checks whether matching\
-            passwords have been leaked in data breaches. For this it queries the "Have I Been\
-            Pwned" API detailed at https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange\
-            and searches through the results for matching passwords.')
-    parser.add_argument('--reveal', action='store_true',
-            help='show entered password in plaintext (default behaviour hides entry)')
-    parser.add_argument('--loop', action='store_true',
-            help='keep prompting for passwords until given EOF or empty input (default checks\
-                    single password)')
+    parser = argparse.ArgumentParser(description='Reads in passwords and searches for them in known\
+            data breaches, using the "Have I Been Pwned" API (https://haveibeenpwned.com/API).')
+    parser.add_argument('--reveal', action='store_true', help='show entered password in plaintext')
+    parser.add_argument('--loop', action='store_true', help='prompt until given EOF or empty input')
     args = parser.parse_args()
 
     while True:
