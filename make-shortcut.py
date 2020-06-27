@@ -87,8 +87,8 @@ def get_title(url, site, trim=True):
     exit(tfmt.FAIL + errmsg + tfmt.ENDC)
 
 def sanitize_name(name):
-    ''' Sanitise given Unix file name. '''
-    name = re.sub('[^-.() \w]', '', name, flags=re.ASCII)
+    ''' Sanitise given file name of illegal characters for NTFS or EXT4. '''
+    name = re.sub('[<>:"/\|?*]', '', name, flags=re.ASCII)
     return re.sub(' +', ' ', name).strip()[:250] # conservative ext4 max filename length
 
 def make_shortcut(url, name):
