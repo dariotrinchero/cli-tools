@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
-from sys import exit
 from tkinter import Tk # Read clipboard contents
-from urllib.parse import urlparse # Validate URL
-import requests # Get HTML and extract <title>
+from urllib.parse import urlparse
+from html import unescape
+import requests
 import re
-from html import unescape # Expand HTML character entities
 
 #---------------------------------------------------------------------------------------------------
 # Usage Notes & Examples (run with -h for full help):
@@ -24,19 +23,28 @@ from html import unescape # Expand HTML character entities
 
 
 #---------------------------------------------------------------------------------------------------
-# NOTE Regex replacements for titles of known sites, consisting of pair: (search RE, replacement RE)
+# NOTE Regex replacements for titles of known sites, comprising pair: (search RE, replacement RE)
 #---------------------------------------------------------------------------------------------------
 known_sites = {
     'www.youtube.com':      (' - YouTube$', ''),
     'youtu.be':             (' - YouTube$', ''),
     'stackoverflow.com':    ('([a-z]+ - )?(.*?)( - Stack Overflow$)', lambda m: m.group(2)),
     'en.wikipedia.org':     (' - Wikipedia$', ''),
-    'www.reddit.com':       (' : .*?$', '') # Remove subreddit name
+    'www.reddit.com':       (' : .*?$', '') # remove subreddit name
     }
+
+class tfmt:
+    ''' Formatting codes for terminal output. '''
+    WARN = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    HEADER = '\033[95m' + UNDERLINE
 
 def get_clipboard():
     ''' Get current contents of clipboard. '''
-    print('Getting URL from clipboard (use --url to specify URL)')
+    print(f'{tfmt.WARN}Getting URL from clipboard (use --url to specify URL){tfmt.ENDC}')
     tk = Tk()
     tk.withdraw()
     clipboard = tk.clipboard_get()
@@ -45,68 +53,71 @@ def get_clipboard():
     return clipboard
 
 def get_site(url):
-    ''' Return the site (network location) of given url, after sanitising URL. '''
+    ''' Return the site (network location) of given url, after validating URL. '''
     try:
         parsed = urlparse(url)
-        valid = all([parsed.scheme, parsed.netloc, parsed.path])
-    except: valid = False
-
-    if not valid: exit('ERROR: "{}" is an invalid URL.'.format(url))
-
+        assert all([parsed.scheme, parsed.netloc, parsed.path])
+    except: exit(f'{tfmt.FAIL}Invalid URL: "{url}"{tfmt.ENDC}')
     return parsed.netloc
 
-def get_name(url, site=None, trim=True):
-    ''' Get title of page at given URL, and optionally trim titles from known sites. '''
-    print('Getting name from URL (use --name to specify name)')
-    try:
-        response = requests.get(url=url, timeout=10, headers={'user-agent': 'make-shortcut/0.0.1'})
-        response.raise_for_status()
-        t = response.text
-        name = t[t.find('<title>') + 7:t.find('</title>')]
-
-        return format_name(name, site, trim)
-    except requests.exceptions.HTTPError:
-        exit('ERROR: Request to URL "{}" returned bad status code {}.'.format(url,
-            response.status_code))
-    except requests.exceptions.Timeout: exit('ERROR: Request to URL "{}" timed-out.'.format(url))
-    except ConnectionError: exit('ERROR: Connection error while accessing URL "{}".'.format(url))
-    except requests.exceptions.TooManyRedirects:
-        exit('ERROR: Too many redirects while accessing URL "{}".'.format(url))
-
-def format_name(name, site=None, trim=True):
-    ''' Sanitise given Unix file name, and optionally trim names from known sites. '''
+def get_title(url, site, trim=True):
+    ''' Get title of page at given URL, optionally trimming names of known sites. '''
     global known_sites
-    if site in known_sites and trim:
-        print('Trimming name from known site (use --notrim to avoid)')
-        r = known_sites[site]
-        name = re.sub(r[0], r[1], name)
-    name = re.sub('[^-.() \w]', '', unescape(name), flags=re.ASCII)
-    return re.sub(' +', ' ', name).strip()
+    print(f'{tfmt.WARN}Getting name from URL (use --name to specify name){tfmt.ENDC}')
 
-def make_desktop(url, name):
-    ''' Create new .desktop file in current directory with given name, linking to given URL. '''
-    with open(name + '.desktop', 'w') as newf:
-        newf.write(('[Desktop Entry]\nEncoding=UTF-8\nName={0:}\nType=Link\nURL={1:}\n' +
-            'Icon=firefox\nName[en-ZA]={0:}').format(name, url))
+    try:
+        response = requests.get(url=url, timeout=10, headers={'user-agent': 'make-shortcut/1.0.1'})
+        response.raise_for_status()
+        match = re.search('<\W*title\W*(.*)\W*</title', response.text, re.IGNORECASE)
+        title = unescape(match.group(1))
+
+        # Optionally remove known site names from title
+        if site in known_sites and trim:
+            print(f'{tfmt.WARN}Trimming name from known site (use --notrim to avoid){tfmt.ENDC}')
+            r = known_sites[site]
+            title = re.sub(r[0], r[1], title)
+
+        return title
+    except requests.exceptions.HTTPError:
+        errmsg = f'Request to "{url}" returned bad status code {response.status_code}'
+    except requests.exceptions.Timeout: errmsg = f'Request to "{url}" timed-out'
+    except requests.exceptions.ConnectionError: errmsg = f'Connection error accessing "{url}"'
+    except requests.exceptions.TooManyRedirects: errmsg = f'Too many redirects accessing "{url}"'
+    except: errmsg = f'Cannot extract title from "{url}"'
+    exit(tfmt.FAIL + errmsg + tfmt.ENDC)
+
+def sanitize_name(name):
+    ''' Sanitise given Unix file name. '''
+    name = re.sub('[^-.() \w]', '', name, flags=re.ASCII)
+    return re.sub(' +', ' ', name).strip()[:250] # conservative ext4 max filename length
+
+def make_shortcut(url, name):
+    ''' Create new .html file in current directory with given name, linking to given URL. '''
+    with open(name + '.html', 'w') as newf:
+        newf.write(f'<html><head><meta http-equiv="refresh"content="0;url={url}"/></head></html>')
 
 if __name__ == '__main__':
     # Create argument parser and parse args
-    parser = argparse.ArgumentParser(description='Creates .desktop shortcut for given URL and \
-            shortcut name. If no name is given, shortcut is named by the title of the page. If \
-            the website is in a list of known sites, this title is first trimmed.')
+    parser = argparse.ArgumentParser(description='Creates HTML page linking to given URL, to act\
+            as a cross-platform shortcut. If no name is given, shortcut is named by the title of\
+            the page. If destination is in a list of known sites, this title is first trimmed.')
     parser.add_argument('--name', action='store', default=None,
             metavar='NAME', help='name of shortcut (defaults to sanitised page title)')
     parser.add_argument('--url', action='store', default=None,
             metavar='URL', help='URL of shortcut (defaults to clipboard contents)')
-    parser.add_argument('--notrim', action='store_false', dest='trim', help='do not trim title of \
-            known webpage (if title is used for name)')
+    parser.add_argument('--notrim', action='store_false', dest='trim', help='do not trim known\
+            web page names from title (if using title for shortcut name)')
     args = parser.parse_args()
 
-    # Execute relevant functions
-    print('[Creating shortcut]\n')
+    # Create shortcut
+    print(f'{tfmt.HEADER}Creating Shortcut{tfmt.ENDC}')
     if not args.url: args.url = get_clipboard()
     site = get_site(args.url)
-    if not args.name: args.name = get_name(args.url, site, args.trim)
+    if not args.name: args.name = get_title(args.url, site, args.trim)
+    name = sanitize_name(args.name)
+    make_shortcut(args.url, name)
 
-    print('URL:\t{}\nSite:\t{}\nName:\t{}'.format(args.url, site, args.name))
-    make_desktop(args.url, args.name)
+    # Output parameters used
+    print(f'\n{tfmt.BOLD}URL{tfmt.ENDC}:\t{args.url}')
+    print(f'{tfmt.BOLD}Site{tfmt.ENDC}:\t{site}')
+    print(f'{tfmt.BOLD}Name{tfmt.ENDC}:\t{name}')
