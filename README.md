@@ -18,15 +18,15 @@ highly-specific application I require.
   directories of 255 each, and compares the files with those in `~/Music`
 * `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
   leading and trailing silence
-* `make-shortcut.py` - creates .desktop shortcut for a URL, with options to retrieve URL from
-  clipboard, or to use (sanitised) webpage title for shortcut name
+* `make-shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL,
+  based on a .html file, with options to retrieve URL from clipboard, and to use (sanitised) webpage
+  title for shortcut name
 * `pdftools.py` - extract, interleave or rotate pages of PDFs, or find and replace text in a PDF
 * `pwned.py` - query
   [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
   whether a given password has been leaked in a data breach
 * `uni-shell.py` - made for *Stellenbosch University* Ubuntu servers; launch FortiClient VPN tunnel
   then connect to given host with SSH or SFTP, and transfer control to user
-* `url-desktop.py` - convert internet shortcuts between Windows (.url) and Ubuntu (.desktop) format
 
 ### Running the Scripts
 
