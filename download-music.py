@@ -2,7 +2,7 @@
 
 import argparse
 import subprocess
-from sys import exit
+from tempfile import NamedTemporaryFile
 import os
 
 #---------------------------------------------------------------------------------------------------
@@ -23,13 +23,11 @@ import os
 # youtube-dl    https://rg3.github.io/youtube-dl/
 #
 
-
 def check_dir(wd, song_list, file_needed):
     ''' Change directory & check for download list if needed '''
     if not wd: os.chdir(os.path.expanduser('~/Downloads'))
-
     if file_needed and not os.path.isfile(song_list):
-        exit('ERROR: Could not find song list "%s".' % song_list)
+        exit(f'ERROR: Could not find song list "{song_list}".')
 
 def download(song_list, quiet, force, playlist):
     ''' Download all songs listed in song_list using youtube-dl, with given parameters '''
@@ -42,35 +40,30 @@ def download(song_list, quiet, force, playlist):
     dl_args += ['--default-search', 'ytsearch', '-a', song_list, '--output', '%(title)s.%(ext)s']
 
     # Download & quit with error if download fails
-    if subprocess.run(['youtube-dl'] + dl_args).returncode != 0:
+    if subprocess.run(['youtube-dl'] + dl_args).returncode:
         exit('ERROR: Could not download from list. Try "sudo youtube-dl -U".')
 
 def trim_mp3s(quiet):
     ''' Trim silence from beginning and end of all .mp3 files in current directory '''
-    # Loop through .mp3 files, trimming silence
-    for f in os.listdir('.'):
-        if f.endswith('.mp3'):
-            exit1 = subprocess.run(['sox', "%s" % f, '_tmpsoxout.mp3', 'reverse',
-                'silence', '1', '0.1', '0.1%', 'reverse']).returncode
-            exit2 = subprocess.run(['sox', '_tmpsoxout.mp3', "%s" % f, 'silence',
-                '1', '0.1', '0.1%']).returncode
+    with NamedTemporaryFile(suffix='.mp3') as sox_tmp:
+        for f in os.listdir('.'):
+            if not f.endswith('.mp3'): continue
+            # Trim silence from start & end of mp3
+            ret1 = subprocess.run(['sox', f'{f}', sox_tmp.name, 'reverse', 'silence', '1', '0.1',
+                '0.1%', 'reverse']).returncode
+            ret2 = subprocess.run(['sox', sox_tmp.name, f'{f}', 'silence', '1', '0.1',
+                '0.1%']).returncode
 
             # Report success or failure
-            if exit1 == 0 and exit2 == 0:
-                if not quiet: print('Silence trimmed from %s' % f)
-            else: print('ERROR: Could not trim silence from %s.' % f)
-
-    # Remove temporary file _tmpsoxout.mp3
-    if os.path.isfile('_tmpsoxout.mp3'):
-        if subprocess.run(['rm', '_tmpsoxout.mp3']).returncode == 0 and not quiet:
-            print('Temporary file deleted')
+            if ret1 or ret2: print(f'WARNING: Failed to trim silence from {f}')
+            elif not quiet: print(f'Silence trimmed from {f}')
 
 if __name__ == '__main__':
     # Create argument parser and parse args
-    parser = argparse.ArgumentParser(description='Downloads .mp3 files from YouTube, Soundcloud, \
-            Bandcamp and more, using youtube-dl (https://rg3.github.io/youtube-dl/), and trims \
-            silence from downloaded files. URLs of songs to download should be given in the \
-            file specified by --song-list, separated by newlines. All supported websites are \
+    parser = argparse.ArgumentParser(description='Downloads .mp3 files from YouTube, Soundcloud,\
+            Bandcamp and more, using youtube-dl (https://rg3.github.io/youtube-dl/), and trims\
+            silence from downloaded files. URLs of songs to download should be given in the\
+            file specified by --song-list, separated by newlines. All supported websites are\
             listed at https://rg3.github.io/youtube-dl/supportedsites.html')
     parser.add_argument('--song-list', action='store', dest='song_list', default='song-list.txt',
             metavar='FILE', help='file containing URLs to download (defaults to "song-list.txt")')
@@ -88,7 +81,6 @@ if __name__ == '__main__':
             help='do not download or clear download list (only trim silence)')
     parser.add_argument('--noclear', action='store_false', dest='clear',
             help='do not clear download list (set by default if --nodownload given)')
-
     args = parser.parse_args()
 
     # Execute relevant functions
@@ -105,4 +97,3 @@ if __name__ == '__main__':
         if args.trim: trim_mp3s(args.quiet)
     except KeyboardInterrupt:
         print('\nINTERRUPTED: Terminating. Some files may not be correctly removed.')
-
