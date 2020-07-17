@@ -33,7 +33,7 @@ known_sites = {
     'www.reddit.com':       (' : .*?$', '') # remove subreddit name
     }
 
-class tfmt:
+class Tfmt:
     ''' Formatting codes for terminal output. '''
     WARN = '\033[93m'
     FAIL = '\033[91m'
@@ -44,7 +44,7 @@ class tfmt:
 
 def get_clipboard():
     ''' Get current contents of clipboard. '''
-    print(f'{tfmt.WARN}Getting URL from clipboard (use --url to specify URL){tfmt.ENDC}')
+    print(f'{Tfmt.WARN}Getting URL from clipboard (use --url to specify URL){Tfmt.ENDC}')
     tk = Tk()
     tk.withdraw()
     clipboard = tk.clipboard_get()
@@ -57,13 +57,13 @@ def get_site(url):
     try:
         parsed = urlparse(url)
         assert all([parsed.scheme, parsed.netloc, parsed.path])
-    except: exit(f'{tfmt.FAIL}Invalid URL: "{url}"{tfmt.ENDC}')
+    except: exit(f'{Tfmt.FAIL}Invalid URL: "{url}"{Tfmt.ENDC}')
     return parsed.netloc
 
 def get_title(url, site, trim=True):
     ''' Get title of page at given URL, optionally trimming names of known sites. '''
     global known_sites
-    print(f'{tfmt.WARN}Getting name from URL (use --name to specify name){tfmt.ENDC}')
+    print(f'{Tfmt.WARN}Getting name from URL (use --name to specify name){Tfmt.ENDC}')
 
     try:
         response = requests.get(url=url, timeout=10, headers={'user-agent': 'make-shortcut/1.0.1'})
@@ -73,7 +73,7 @@ def get_title(url, site, trim=True):
 
         # Optionally remove known site names from title
         if site in known_sites and trim:
-            print(f'{tfmt.WARN}Trimming name from known site (use --notrim to avoid){tfmt.ENDC}')
+            print(f'{Tfmt.WARN}Trimming name from known site (use --notrim to avoid){Tfmt.ENDC}')
             r = known_sites[site]
             title = re.sub(r[0], r[1], title)
 
@@ -84,7 +84,7 @@ def get_title(url, site, trim=True):
     except requests.exceptions.ConnectionError: errmsg = f'Connection error accessing "{url}"'
     except requests.exceptions.TooManyRedirects: errmsg = f'Too many redirects accessing "{url}"'
     except: errmsg = f'Cannot extract title from "{url}"'
-    exit(tfmt.FAIL + errmsg + tfmt.ENDC)
+    exit(Tfmt.FAIL + errmsg + Tfmt.ENDC)
 
 def sanitize_name(name):
     ''' Sanitise given file name of illegal characters for NTFS or EXT4. '''
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Create shortcut
-    print(f'{tfmt.HEADER}Creating Shortcut{tfmt.ENDC}')
+    print(f'{Tfmt.HEADER}Creating Shortcut{Tfmt.ENDC}')
     if not args.url: args.url = get_clipboard()
     site = get_site(args.url)
     if not args.name: args.name = get_title(args.url, site, args.trim)
@@ -118,6 +118,6 @@ if __name__ == '__main__':
     make_shortcut(args.url, name)
 
     # Output parameters used
-    print(f'\n{tfmt.BOLD}URL{tfmt.ENDC}:\t{args.url}')
-    print(f'{tfmt.BOLD}Site{tfmt.ENDC}:\t{site}')
-    print(f'{tfmt.BOLD}Name{tfmt.ENDC}:\t{name}')
+    print(f'\n{Tfmt.BOLD}URL{Tfmt.ENDC}:\t{args.url}')
+    print(f'{Tfmt.BOLD}Site{Tfmt.ENDC}:\t{site}')
+    print(f'{Tfmt.BOLD}Name{Tfmt.ENDC}:\t{name}')
