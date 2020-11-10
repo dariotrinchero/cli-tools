@@ -3,6 +3,7 @@
 import argparse
 import subprocess
 import re
+from tempfile import NamedTemporaryFile as TmpFile
 
 #---------------------------------------------------------------------------------------------------
 # Usage Notes & Examples (run with -h for full help):
@@ -30,28 +31,29 @@ import re
 
 def replace(args):
     ''' Find & replace text in a pdf, most notably to remove a watermark '''
-    # Decompress object streams in pdf file into more readable "qdf" format
-    subprocess.run(['qpdf', '--qdf', '--object-streams=disable', args.input_file, '_temp1.pdf'])
+    with TmpFile(suffix='.pdf') as tmp1, TmpFile(suffix='.pdf') as tmp2:
+        # Decompress object streams in pdf file into more readable "qdf" format
+        subprocess.run(['qpdf', '--qdf', '--object-streams=disable', args.input_file, tmp1.name])
 
-    # Build regex pattern to find text, possibly ignoring qdf formatting characters
-    if args.verbatim: regex = re.escape(args.find_text)
-    else: regex = '(\)-?[.0-9]*\()?'.join(list(args.find_text.replace(' ', '')))
+        # Build regex pattern to find text, possibly ignoring qdf formatting characters
+        if args.verbatim: regex = re.escape(args.find_text)
+        else: regex = '(\)-?[.0-9]*\()?'.join(list(args.find_text.replace(' ', '')))
 
-    if args.ignore_case: pattern = re.compile(bytes(regex, encoding='utf-8'), re.IGNORECASE)
-    else: pattern = re.compile(bytes(regex, encoding='utf-8'))
+        if args.ignore_case: pattern = re.compile(bytes(regex, encoding='utf-8'), re.IGNORECASE)
+        else: pattern = re.compile(bytes(regex, encoding='utf-8'))
 
-    # Perform replacements
-    with open('_temp1.pdf', 'rb') as temp: tempcontent = temp.read()
-    sub = pattern.subn(bytes(args.replace_text, encoding='utf-8'), tempcontent)
-    print('SUCCESS: %s replacements made.' % sub[1])
-    with open('_temp1.pdf', 'wb') as temp: temp.write(sub[0])
+        # Perform replacements
+        tempcontent = tmp1.read()
+        sub = pattern.subn(bytes(args.replace_text, encoding='utf-8'), tempcontent)
+        print('SUCCESS: %s replacements made.' % sub[1])
 
-    # Repair damage to qdf file, such as now-incorrect data stream lengths
-    with open('_temp2.pdf', 'w') as temp: subprocess.run(['fix-qdf', '_temp1.pdf'], stdout=temp)
+        tmp1.seek(0)
+        tmp1.write(sub[0])
+        tmp1.flush()
 
-    # Recompress qdf into final pdf, & remove temporary files
-    subprocess.run(['qpdf', '--stream-data=compress', '_temp2.pdf', args.output_file])
-    subprocess.run(['rm', '_temp1.pdf', '_temp2.pdf'])
+        # Repair qdf file damage (eg. incorrect data stream lengths) & recompress
+        subprocess.run(['fix-qdf', tmp1.name], stdout=tmp2)
+        subprocess.run(['qpdf', '--stream-data=compress', tmp2.name, args.output_file])
 
 def splice(args):
     ''' Collect specified pages from any number of pdfs into a single pdf '''
