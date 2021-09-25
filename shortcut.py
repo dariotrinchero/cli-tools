@@ -12,13 +12,13 @@ import re
 #---------------------------------------------------------------------------------------------------
 #
 # Make shortcut with URL on clipboard and page title for name:
-#  $ make-shortcut.py
+#  $ shortcut.py
 #
 # Make shortcut with given URL and unmodified page title for name:
-#  $ make-shortcut.py --notrim
+#  $ shortcut.py --notrim
 #
 # Make shortcut with given URL and name:
-#  $ make-shortcut.py --url="https://www.youtube.com/" --name="YouTube"
+#  $ shortcut.py --url="https://www.youtube.com/" --name="YouTube"
 #
 
 
@@ -29,7 +29,7 @@ known_sites = {
     'www.youtube.com':      (' - YouTube$', ''),
     'youtu.be':             (' - YouTube$', ''),
     'stackoverflow.com':    ('([a-z]+ - )?(.*?)( - Stack Overflow$)', lambda m: m.group(2)),
-    'en.wikipedia.org':     (' - Wikipedia$', ''),
+    #'en.wikipedia.org':     (' - Wikipedia$', ''),
     'www.reddit.com':       (' : .*?$', '') # remove subreddit name
     }
 
@@ -66,7 +66,7 @@ def get_title(url, site, trim=True):
     print(f'{Tfmt.WARN}Getting name from URL (use --name to specify name){Tfmt.ENDC}')
 
     try:
-        response = requests.get(url=url, timeout=10, headers={'user-agent': 'make-shortcut/1.0.1'})
+        response = requests.get(url=url, timeout=10, headers={'user-agent': 'shortcut/1.0.1'})
         response.raise_for_status()
         match = re.search('<\W*title\W*(.*)\W*</title', response.text, re.IGNORECASE)
         title = unescape(match.group(1))

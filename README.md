@@ -18,7 +18,7 @@ highly-specific application I require.
   directories of 255 each, and compares the files with those in `~/Music`
 * `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
   leading and trailing silence
-* `make-shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL,
+* `shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL,
   based on a .html file, with options to retrieve URL from clipboard, and to use (sanitised) webpage
   title for shortcut name
 * `pdftools.py` - extract, interleave or rotate pages of PDFs, or find and replace text in a PDF
