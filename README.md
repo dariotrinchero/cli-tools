@@ -6,11 +6,11 @@ the need arises, I will certainly expand this collection.
 
 ## Overview
 
-Scripts range from highly specific in utility (such as `distribute.py` or `uni-shell.py`) to fairly
-broad (such as `pdftools.py`). Certain script functionality is little but a wrapper for a
-pre-existing command line utility like `qpdf` or `sox`; in such cases, the script is designed to
-simplify the syntax and make the use of these tools more convenient and intuitive for whatever
-highly-specific application I require.
+Scripts range from highly specific in utility (such as `distribute.py`) to fairly broad (such as
+`pdftools.py`). Certain script functionality is little but a wrapper for a pre-existing command
+line utility like `qpdf` or `sox`; in such cases, the script is designed to simplify the syntax
+and make the use of these tools more convenient and intuitive for whatever highly-specific
+application I require.
 
 ### Description of Scripts
 
@@ -18,6 +18,8 @@ highly-specific application I require.
   directories of 255 each, and compares the files with those in `~/Music`
 * `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
   leading and trailing silence
+* `ergo.py` - made to assist with card game, *Ergo*; outputs a list of atomic proposition
+  which are (dis)proven by a given list of premises (propositional logic sentences)
 * `shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL,
   based on a .html file, with options to retrieve URL from clipboard, and to use (sanitised) webpage
   title for shortcut name
@@ -25,8 +27,6 @@ highly-specific application I require.
 * `pwned.py` - query
   [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
   whether a given password has been leaked in a data breach
-* `uni-shell.py` - made for *Stellenbosch University* Ubuntu servers; launch FortiClient VPN tunnel
-  then connect to given host with SSH or SFTP, and transfer control to user
 
 ### Running the Scripts
 
@@ -53,14 +53,11 @@ flag.
 * `download-music.py` requires command line tools [SoX](http://sox.sourceforge.net/) and 
   [youtube-dl](https://ytdl-org.github.io/youtube-dl/index.html)
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
-* `uni-shell.py` requires [FortiClient VPN](https://forticlient.com/downloads)
 
-## Potential Issues
+## Known Issues
 
-* `uni-shell.py` was written for a specific application. It functions by spawning processes, then
-  expecting specific output and responding. It is likely that different versions of *FortiClient*
-  or different hosts will cause the expected output to differ. If so, the script will require 
-  basic modification to function.
+* `distribute.py` is not very robust. Manually rearranging the files in each of the
+  generated folders can break the alphabetical ordering.
 
 ## Contributing
 
