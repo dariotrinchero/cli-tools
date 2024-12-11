@@ -68,14 +68,13 @@ def get_title(url, site, trim=True):
     try:
         response = requests.get(url=url, timeout=10, headers={'user-agent': 'shortcut/1.0.1'})
         response.raise_for_status()
-        match = re.search('<\W*title\W*(.*)\W*</title', response.text, re.IGNORECASE)
-        title = unescape(match.group(1))
+        title = unescape(re.search('<\W*title\W*(.*)\W*</title', response.text, re.IGNORECASE).group(1))
 
         # Optionally remove known site names from title
         if site in known_sites and trim:
             print(f'{Tfmt.WARN}Trimming name from known site (use --notrim to avoid){Tfmt.ENDC}')
-            r = known_sites[site]
-            title = re.sub(r[0], r[1], title)
+            subs = known_sites[site]
+            title = re.sub(subs[0], subs[1], title)
 
         return title
     except requests.exceptions.HTTPError:
@@ -84,7 +83,7 @@ def get_title(url, site, trim=True):
     except requests.exceptions.ConnectionError: errmsg = f'Connection error accessing "{url}"'
     except requests.exceptions.TooManyRedirects: errmsg = f'Too many redirects accessing "{url}"'
     except: errmsg = f'Cannot extract title from "{url}"'
-    exit(Tfmt.FAIL + errmsg + Tfmt.ENDC)
+    exit(f'{Tfmt.FAIL}{errmsg}{Tfmt.ENDC}')
 
 def sanitize_name(name):
     ''' Sanitise given file name of illegal characters for NTFS or EXT4. '''
@@ -94,7 +93,7 @@ def sanitize_name(name):
 def make_shortcut(url, name):
     ''' Create new .html file in current directory with given name, linking to given URL. '''
     with open(name + '.html', 'w') as newf:
-        newf.write(f'<html><head><meta http-equiv="refresh"content="0;url={url}"/></head></html>')
+        newf.write(f'<meta http-equiv="refresh"content="0;url={url}"/>')
 
 if __name__ == '__main__':
     # Create argument parser and parse args
