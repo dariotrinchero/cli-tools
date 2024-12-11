@@ -1,8 +1,7 @@
 # Command Line Tools
 
 Some basic command line tools, mostly in Python 3, which automate tasks I frequently find myself
-performing. This includes downloading audio from YouTube, editing and merging PDFs, and more. As
-the need arises, I will certainly expand this collection.
+performing.
 
 ## Overview
 
@@ -16,8 +15,6 @@ application I require.
 
 * `distribute.py` - made for *Toyota Yarris* sound-system; arranges mp3 files alphabetically into
   directories of 255 each, and compares the files with those in `~/Music`
-* `download-music.py` - downloads mp3 audio from a list of YouTube (or other) URLs, removing 
-  leading and trailing silence
 * `ergo.py` - made to assist with card game, *Ergo*; outputs a list of atomic proposition
   which are (dis)proven by a given list of premises (propositional logic sentences)
 * `shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL,
@@ -27,6 +24,7 @@ application I require.
 * `pwned.py` - query
   [HaveIBeenPwned](https://haveibeenpwned.com/API/v2#SearchingPwnedPasswordsByRange) API to check
   whether a given password has been leaked in a data breach
+* `repos.sh` - output summary of status of a number of git repos, all assumed to reside in `~/git-repos`
 
 ### Running the Scripts
 
@@ -50,8 +48,6 @@ flag.
 
 ## Prerequisites
 
-* `download-music.py` requires command line tools [SoX](http://sox.sourceforge.net/) and 
-  [youtube-dl](https://ytdl-org.github.io/youtube-dl/index.html)
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
 
 ## Known Issues
