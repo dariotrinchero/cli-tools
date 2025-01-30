@@ -56,7 +56,7 @@ def get_site(url):
     ''' Return the site (network location) of given url, after validating URL. '''
     try:
         parsed = urlparse(url)
-        assert all([parsed.scheme, parsed.netloc, parsed.path])
+        assert all([parsed.scheme, parsed.netloc])
     except: exit(f'{Tfmt.FAIL}Invalid URL: "{url}"{Tfmt.ENDC}')
     return parsed.netloc
 
