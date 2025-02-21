@@ -5,6 +5,7 @@ import re
 import sys
 import textwrap
 
+from math import nan, isnan
 from datetime import date, timedelta
 from shutil import get_terminal_size
 from urllib.request import urlopen
@@ -76,8 +77,14 @@ class Term:
     def heading(text, color=(255, 255, 90)):
         if not sys.stdout.isatty(): return text
         return Term.fmt(text, Term.UNDER, Term.BOLD, Term.COLOR) % color
+
+def bullet_lvl(lines, line):
+    ''' Get indent level of bullet on given line (NaN if line out of range, or not bullet list item). '''
+    if not 0 < line < len(lines): return nan
+    bullets = re.search('^\*+(?=[^*])', lines[line])
+    return nan if not bullets else bullets.end()
     
-def print_news(day, width=100, indent=3):
+def print_news(day, width=100, indent=3, compact=False):
     ''' Prints news headlines for given day from Wikipedia, formatted for terminal output. '''
     # print date heading & loading filler text
     print(Term.heading(human_date(day)) + '\n\n'
@@ -85,7 +92,8 @@ def print_news(day, width=100, indent=3):
     sys.stdout.flush()
 
     # fetch headlines
-    for line in get_news(day):
+    news = get_news(day)
+    for l, line in enumerate(news):
         # conceal link URLs for better line wrapping
         link_urls = []
         def hide_link(m, delim):
@@ -98,11 +106,11 @@ def print_news(day, width=100, indent=3):
 
         # bullet points & line wrapping
         indent_args = {}
-        bullets = re.search('^\*+(?=[^*])', line)
-        if bullets:
-            lvl = bullets.end()
+        lvl = bullet_lvl(news, l)
+        if not isnan(lvl):
             line = line[lvl:].strip()
-            indent_args['initial_indent'] = '\n' * (lvl == 1) + ' ' * indent * (lvl - 1) + '\u2022 '
+            dense = compact or bullet_lvl(news, l - 1) < lvl < bullet_lvl(news, l + 1)
+            indent_args['initial_indent'] = '\n' * (not dense) + ' ' * indent * (lvl - 1) + '\u2022 '
             indent_args['subsequent_indent'] = ' ' * (indent * (lvl - 1) + 2)
         line = textwrap.fill(line, width, break_long_words=False, **indent_args)
 
@@ -119,7 +127,7 @@ def print_news(day, width=100, indent=3):
 
 if __name__ == '__main__':
     # base default width on terminal size
-    width = min(int(0.8 * get_terminal_size().columns), 120)
+    width = min(int(0.8 * get_terminal_size((120, 24)).columns), 120)
 
     # create argument parser & parse args
     parser = argparse.ArgumentParser(description="Retrieves & displays recent news headlines, as\
@@ -130,10 +138,11 @@ if __name__ == '__main__':
         retrieve news (including today)')
     parser.add_argument('--width', type=int, default=width, help='maximum output width')
     parser.add_argument('--indent', type=int, default=3, help='width of indent for nested lists')
+    parser.add_argument('--compact', action='store_true', help='reduce blank lines between bullets')
     args = parser.parse_args()
 
     # output news for each day
     today = date.today()
     for d in range(args.days):
-        print_news(today - timedelta(days=d), args.width, args.indent)
-        print()
+        if d > 0: print()
+        print_news(today - timedelta(days=d), args.width, args.indent, args.compact)
