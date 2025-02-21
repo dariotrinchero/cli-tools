@@ -4,23 +4,28 @@ import argparse
 import re
 import sys
 import textwrap
+import subprocess
 
 from math import nan, isnan
 from datetime import date, timedelta
 from shutil import get_terminal_size
+
 from urllib.request import urlopen
 from urllib.parse import urlparse, quote
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 #---------------------------------------------------------------------------------------------------
 # Usage Notes & Examples (run with -h for full help):
 #---------------------------------------------------------------------------------------------------
 #
-# Retrieve last two days' news (including today):
+# Retrieve news of last two days (including today):
 #  $ news.py 2
 #
 # Limit output width & set indent size for nested lists:
 #  $ news.py 2 --width=150 --indent=3
+#
+# Retrieve news of entire week in scrolling feed:
+#  $ news.py --less
 #
 #---------------------------------------------------------------------------------------------------
 
@@ -33,8 +38,8 @@ def get_news(day):
     day_str = day.strftime('%Y_%B_%d')
     try:
         req = urlopen(f'https://en.wikipedia.org/wiki/Portal:Current_events/{day_str}?action=raw')
-    except HTTPError as err:
-        exit(f'Unable to retrieve news for {human_date(day)}: {err.code}, {err.msg}')
+    except (HTTPError, URLError) as err:
+        exit(f'Unable to retrieve news for {human_date(day)}: {err}')
     return bytes(req.read()).decode('utf-8').split('\n')[3:-1] # head & tail aren't content
 
 def valid_url(url):
@@ -55,6 +60,7 @@ def parse_link(dest, text=None):
 
 class Term:
     ''' Contains functions to apply ANSI terminal formatting to text. '''
+    ANSI_SUPPORTED = True
 
     # ANSI escape sequences
     BOLD  = ('[1m', '[22m')
@@ -65,17 +71,17 @@ class Term:
     LINK  = (']8;;', '\\')
 
     def fmt(text, *styles):
-        if not sys.stdout.isatty(): return text
+        if not Term.ANSI_SUPPORTED: return text
         for style in styles:
             text = '\033' + style[0] + text + '\033' + style[1]
         return text
 
     def link(url, text):
-        if not sys.stdout.isatty(): return text
+        if not Term.ANSI_SUPPORTED: return text
         return Term.fmt(url, Term.LINK) + text + Term.fmt('', Term.LINK)
     
     def heading(text, color=(255, 255, 90)):
-        if not sys.stdout.isatty(): return text
+        if not Term.ANSI_SUPPORTED: return text
         return Term.fmt(text, Term.UNDER, Term.BOLD, Term.COLOR) % color
 
 def bullet_lvl(lines, line):
@@ -88,7 +94,7 @@ def print_news(day, width=100, indent=3, compact=False):
     ''' Prints news headlines for given day from Wikipedia, formatted for terminal output. '''
     # print date heading & loading filler text
     print(Term.heading(human_date(day)) + '\n\n'
-        + Term.fmt('fetching...\r', Term.DIM, Term.ITAL) * sys.stdout.isatty(), end='')
+        + Term.fmt('fetching...\r', Term.DIM, Term.ITAL) * Term.ANSI_SUPPORTED, end='')
     sys.stdout.flush()
 
     # fetch headlines
@@ -134,15 +140,31 @@ if __name__ == '__main__':
         retrieved from the Wikipedia 'Portal:Current events' page. Headlines are rendered as bullet\
         points, grouped by category, with hyperlinks to related pages on Wikipedia, as well as news\
         sources.")
-    parser.add_argument('days', nargs='?', type=int, default=2, help='number of days for which to\
-        retrieve news (including today)')
+    parser.add_argument('days', nargs='?', type=int, default=None, help='number of days (including\
+        today) to retrieve (defaults to 2, or 7 if --less is given)')
     parser.add_argument('--width', type=int, default=width, help='maximum output width')
     parser.add_argument('--indent', type=int, default=3, help='width of indent for nested lists')
     parser.add_argument('--compact', action='store_true', help='reduce blank lines between bullets')
+    parser.add_argument('--ansi', choices=['y', 'n', 'auto'], default='auto',
+        help='whether to apply ANSI styling to output')
+    parser.add_argument('--less', action='store_true', help='automatically pipe output through less\
+        to get scrolling newsfeed')
     args = parser.parse_args()
+
+    # check whether to apply ansi styling
+    Term.ANSI_SUPPORTED = args.ansi == 'y' or args.ansi == 'auto' and sys.stdout.isatty()
+
+    if args.less:
+        # pipe stdout to stdin of 'less' subprocess
+        less_proc = subprocess.Popen(['less', '-c', '-r'], stdin=subprocess.PIPE, text=True)
+        sys.stdout = less_proc.stdin
 
     # output news for each day
     today = date.today()
-    for d in range(args.days):
+    for d in range(args.days or 7 if args.less else 2):
         if d > 0: print()
         print_news(today - timedelta(days=d), args.width, args.indent, args.compact)
+
+    if args.less:
+        less_proc.stdin.close()
+        less_proc.wait()
