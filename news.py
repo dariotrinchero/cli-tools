@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from shutil import get_terminal_size
 
 from urllib.request import urlopen
-from urllib.parse import urlparse, quote
+from urllib.parse import quote
 from urllib.error import HTTPError, URLError
 
 #---------------------------------------------------------------------------------------------------
@@ -82,8 +82,8 @@ class Term:
 class WikiNews:
     ''' Class for parsing Wikipedia news, as per specification (https://w.wiki/DA2e). '''
 
-    CATEGORIES = { # headline categories
-        # this list is exhaustive; cf. https://w.wiki/DA2e
+    # headline categories
+    CATEGORIES = { # this list is exhaustive; cf. https://w.wiki/DA2e
         'Arts and culture':            '🎨',
         'Armed conflicts and attacks': '⚔️ ',
         'Business and economy':        '📈',
@@ -96,15 +96,22 @@ class WikiNews:
         'Sports':                      '🏀'
     }
 
-    DELIM = '\x1F' # unit separator; delimits links with hidden URLs
+    # unit separator; delimits links with hidden URLs
+    DELIM = '\x1F'
 
-    RE = { # patterns for parsing news
-        'bold':    re.compile("'''(.+?)'''"),
-        'bullet':  re.compile('^\*+(?=[^*])'),
-        'heading': re.compile("^'''(.+)'''$"),
-        'ital':    re.compile("''(.+?)''"),
-        'link':    re.compile(r'(\[\[(.+?)(\|(.+?))?\]\])|(\[([^ []+)( (\(.+?\)))?\])'),
-        'linktxt': re.compile(f'{DELIM}(.+?){DELIM}')
+    # fragments of regex patterns
+    HYPERLINK   = r'\[(?P<url>[^ []+)( (?P<htxt>.+?))?\]'
+    WIKILINK    = r'\[\[(?P<dest>.+?)(\|(?P<wtxt>.+?))?\]\]'
+
+    # compiled regex patterns
+    RE = {
+        'bold':       re.compile("'''(?P<txt>.+?)'''"),
+        'bracket':    re.compile(r'\((?P<txt>.+?)\)'),
+        'bullet':     re.compile(r'^\*+(?=[^*])'),
+        'heading':    re.compile("^'''(?P<txt>.+)'''$"),
+        'ital':       re.compile("''(?P<txt>.+?)''"),
+        'link':       re.compile(f'(?P<wiki>{WIKILINK})|(?P<hyper>{HYPERLINK})'),
+        'hiddenlink': re.compile(f'{DELIM}(?P<txt>.+?){DELIM}')
     }
 
     def __init__(self, day, heading_icons=True):
@@ -118,34 +125,37 @@ class WikiNews:
             exit(f'Unable to retrieve news for {day.strftime("%-d %B %Y")}: {err}')
         self.news = bytes(req.read()).decode('utf-8').split('\n')[3:-1] # trim non-content
 
+    def __bool__(self):
+        ''' Return whether there is no news for given day. '''
+        return self.news != ['*'] # default empty template
+
     def format(self, formatter):
         ''' Yield news lines, formatted using given formatter. '''
         for l, line in enumerate(self.news):
+            if not line.strip(): continue
+
             # conceal link URLs for better line wrapping
             urls = []
             line = WikiNews.RE['link'].sub(lambda m: WikiNews.__hide_url(m, urls), line)
 
-            # bold, italics & headings
-            line = self.__format_heading(line, formatter)
-            line = WikiNews.RE['bold'].sub(lambda m: formatter.bold(m.group(1)), line)
-            line = WikiNews.RE['ital'].sub(lambda m: formatter.ital(m.group(1)), line)
-
             # bullet points & line wrapping
             lvl = self.__list_lvl(l)
             line = formatter.wrap(line[lvl:].strip(' '), lvl)
+
+            # bold, italics & headings
+            line = self.__format_heading(line, formatter)
+            line = WikiNews.RE['bold'].sub(lambda m: formatter.bold(m.group('txt')), line)
+            line = WikiNews.RE['ital'].sub(lambda m: formatter.ital(m.group('txt')), line)
 
             # add spacing if level is not between levels of adjacent lines
             if lvl > 0 and not (0 < self.__list_lvl(l - 1) < lvl < self.__list_lvl(l + 1)):
                 line = formatter.line_space(line)
 
             # restore link URLs
-            line = WikiNews.RE['linktxt'].sub(lambda m: formatter.link(urls.pop(), m.group(1)), line)
+            line = WikiNews.RE['hiddenlink'].sub(lambda m:
+                formatter.link(urls.pop(), m.group('txt')), line)
 
             yield line
-
-    def is_blank(self):
-        ''' Return whether there is no news for given day. '''
-        return self.news == ['*'] # default empty template
 
     def __list_lvl(self, line):
         ''' Get indent level of bullet on given line (0 if out of range, or not list item). '''
@@ -157,38 +167,36 @@ class WikiNews:
         ''' Apply appropriate formatting to line if heading; else leave unchanged. '''
         m = WikiNews.RE['heading'].match(line)
         if m is None: return line
-        heading = m.group(1).capitalize()
+        heading = m.group('txt').capitalize()
         if heading not in WikiNews.CATEGORIES: return line
 
         icon = WikiNews.CATEGORIES[heading] + ' ' if self.heading_icons else ''
-        return icon + formatter.bold(formatter.color(heading, color))
+        return '\n' + icon + formatter.bold(formatter.color(heading, color))
 
     @staticmethod
     def __hide_url(m, urls):
         ''' Take regex match for link, & list of URLs; append URL to list, & return link text. '''
-        url, text = (m.group(2), m.group(4)) if m.group(2) else (m.group(6), m.group(8))
+        if m.group('wiki'): # link is Wikilink
+            url, text = m.group('dest'), m.group('wtxt') or m.group('dest')
 
-        # get URL for internal wikilink
-        if not WikiNews.__valid_url(url):
-            if text is None: text = url
+            # obtain full URL for Wikilink
             target = quote(url.replace(' ', '_'))
             url = f'https://en.wikipedia.org/wiki/{target}'
 
+        else: # link is external
+            url, text = m.group('url'), m.group('htxt') or m.group('url')
+
+            # (consistently) bracket & italicise link text
+            text = WikiNews.RE['bracket'].sub(lambda m: m.group('txt'), text)
+            text = WikiNews.RE['ital'].sub(lambda m: m.group('txt'), text)
+            text = "(''" + text + "'')"
+
         # wrap display text in delimiters & make spaces non-breaking
-        if text is None: text = url
         text = WikiNews.DELIM + text.replace(' ', '\u00A0') + WikiNews.DELIM
 
         # record hidden URL in list & return display text
         urls.insert(0, url)
         return text
-
-    @staticmethod
-    def __valid_url(url):
-        ''' Return whether given string is well-formed URL. '''
-        try:
-            parsed = urlparse(url)
-            return all([parsed.scheme, parsed.netloc])
-        except AttributeError: return False
 
 
 def print_news(days, term, heading_icons=True):
@@ -198,13 +206,12 @@ def print_news(days, term, heading_icons=True):
         day = today - timedelta(days=d)
 
         if d > 0: print() # separating line
-        print(term.heading(day.strftime('%A, %-d %B %Y')) + '\n')
+        print(term.heading(day.strftime('%A, %-d %B %Y')))
         print(term.fmt('fetching...\r', Term.DIM, Term.ITAL) * term.ansi, end='')
         sys.stdout.flush()
 
         news = WikiNews(day, heading_icons)
-        print(term.ital("(no news)  ") if news.is_blank() else '\n'.join(news.format(term)))
-
+        print(' ' * 11 + '\n'.join(news.format(term)) if news else term.ital('(no news)  '))
 
 if __name__ == '__main__':
     # create argument parser & parse args
