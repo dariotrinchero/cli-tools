@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import re
 import subprocess
 import sys
@@ -107,12 +108,12 @@ class WikiNews:
 
     # fragments of regex patterns
     HYPERLINK   = r'\[(?P<url>[^ []+)( (?P<htxt>.+?))?\]'
-    WIKILINK    = r'\[\[(?P<dest>.+?)(\|(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
+    WIKILINK    = r'\[\[(?P<dest>.+?)(\| *(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
 
     # compiled regex patterns
     BOLD =       re.compile("'''(?P<txt>.+?)'''")
     BRACKET =    re.compile(r'\((?P<txt>.+?)\)')
-    BULLET =     re.compile(r'^\*+(?=[^*])')
+    BULLET =     re.compile(r'^\*+')
     HEADING =    re.compile("^'''(?P<txt>.+)'''$")
     HIDDENLINK = re.compile(f'{DELIM}(?P<txt>.+?){DELIM}')
     ITAL =       re.compile("''(?P<txt>.+?)''")
@@ -122,7 +123,7 @@ class WikiNews:
         self.heading_icons = heading_icons
 
         # retrieve news for given day from Wikipedia as list of lines
-        day_str = day.strftime('%Y_%B_%d')
+        day_str = day.strftime('%Y_%B_%-d')
         try:
             with urlopen(f'{WikiNews.URL}Portal:Current_events/{day_str}?action=raw') as req:
                 # decode & trim non-content
@@ -164,7 +165,7 @@ class WikiNews:
 
     def __list_lvl(self, line):
         ''' Get indent level of bullet on given line (0 if out of range, or not list item). '''
-        if not 0 < line < len(self.news): return 0
+        if not 0 <= line < len(self.news): return 0
         bullets = WikiNews.BULLET.search(self.news[line])
         return 0 if not bullets else bullets.end()
 
@@ -205,18 +206,24 @@ class WikiNews:
         return text
 
 
-def print_news(days, term, heading_icons=True):
+async def get_news(day, heading_icons):
+    ''' Asynchronously retrieve news headlines from Wikipedia for given day. '''
+    return '\n'.join(WikiNews(day, heading_icons).format(term)).strip() + '\n'
+
+async def print_news(days, term, heading_icons=True, less=False):
     ''' Print news headlines from Wikipedia for given number of days. '''
     today = date.today()
-    for d in range(days):
-        day = today - timedelta(days=d)
+    day_range = [today - timedelta(days=d) for d in range(days)]
 
-        print(term.heading(day.strftime('%A, %-d %B %Y')))
-        print(term.fmt('\nfetching...', Term.DIM, Term.ITAL) * term.ansi, end='')
-        sys.stdout.flush()
+    # queue news fetch requests for all days
+    news = [asyncio.create_task(get_news(day, heading_icons)) for day in day_range]
 
-        news = '\n'.join(WikiNews(day, heading_icons).format(term))
-        print(term.backspace(11) + news.strip() + '\n')
+    # print results upon completion
+    loadmsg = term.ansi and not less
+    for d, day in enumerate(day_range):
+        print(term.heading(day.strftime('%A, %-d %B %Y')) + '\n')
+        print(term.fmt('fetching...', Term.DIM, Term.ITAL) * loadmsg, end='', flush=True)
+        print(term.backspace(11) * loadmsg + await news[d])
 
 if __name__ == '__main__':
     # create argument parser & parse args
@@ -244,11 +251,11 @@ if __name__ == '__main__':
     try:
         if args.less:
             # attach stdout to stdin of 'less' subprocess
-            less_proc = subprocess.Popen(['less', '-crK'], stdin=subprocess.PIPE, text=True)
+            less_proc = subprocess.Popen(['less', '-cRK'], stdin=subprocess.PIPE, text=True)
             sys.stdout = less_proc.stdin
 
         # print news headlines
-        print_news(args.days or (5 if args.less else 2), term, args.icons)
+        asyncio.run(print_news(args.days or (5 if args.less else 2), term, args.icons, args.less))
 
     except (BrokenPipeError, KeyboardInterrupt): pass # ignore user exiting early
 
