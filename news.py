@@ -111,16 +111,17 @@ class WikiNews:
     WIKILINK    = r'\[\[(?P<dest>.+?)(\| *(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
 
     # compiled regex patterns
-    BOLD =       re.compile("'''(?P<txt>.+?)'''")
-    BRACKET =    re.compile(r'\((?P<txt>.+?)\)')
+    BOLD =       re.compile("'''(?P<txt>.+?)'''", flags=re.DOTALL)
+    BRACKET =    re.compile(r'\((?P<txt>.+?)\)', flags=re.DOTALL)
     BULLET =     re.compile(r'^\*+')
     HEADING =    re.compile("^'''(?P<txt>.+)'''$")
-    HIDDENLINK = re.compile(f'{DELIM}(?P<txt>.+?){DELIM}')
-    ITAL =       re.compile("''(?P<txt>.+?)''")
+    HIDDENLINK = re.compile(f'{DELIM}(?P<txt>.+?){DELIM}', flags=re.DOTALL)
+    ITAL =       re.compile("''(?P<txt>.+?)''", flags=re.DOTALL)
     LINK =       re.compile(f'(?P<wiki>{WIKILINK})|(?P<hyper>{HYPERLINK})')
 
     def __init__(self, day, heading_icons=True):
         self.heading_icons = heading_icons
+        self.icons = { WikiNews.__cat_key(k): v for (k, v) in WikiNews.CATEGORIES.items() }
 
         # retrieve news for given day from Wikipedia as list of lines
         day_str = day.strftime('%Y_%B_%-d')
@@ -171,13 +172,18 @@ class WikiNews:
 
     def __format_heading(self, line, formatter, color=(255, 255, 170)):
         ''' Apply appropriate formatting to line if heading; else leave unchanged. '''
-        m = WikiNews.HEADING.match(line)
-        if m is None: return line
-        heading = m.group('txt').capitalize()
-        if heading not in WikiNews.CATEGORIES: return line
+        try:
+            heading = WikiNews.HEADING.match(line).group('txt').capitalize()
+            icon = (self.icons[WikiNews.__cat_key(heading)] + ' ') * self.heading_icons
+            return '\n' + icon + formatter.bold(formatter.color(heading, color))
+        except: # line isn't heading (regex didn't match / dictionary lookup failed)
+            return line
 
-        icon = WikiNews.CATEGORIES[heading] + ' ' if self.heading_icons else ''
-        return '\n' + icon + formatter.bold(formatter.color(heading, color))
+    @staticmethod
+    def __cat_key(string):
+        ''' Contributors may err in category names; derive key to ignore minor variations. '''
+        words = string.lower().split()
+        return words[0][:3] + str(len(words)) + str('and' in words)
 
     @staticmethod
     def __parse_link(m, urls):
