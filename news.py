@@ -8,11 +8,13 @@ import sys
 import textwrap
 
 from datetime import date, timedelta
-from shutil import get_terminal_size
+from html.parser import HTMLParser
+from json import loads as json
+from shutil import get_terminal_size as term_size
 
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
-from urllib.request import urlopen
+from urllib.parse import quote as escape
+from urllib.request import urlopen as fetch
 
 #---------------------------------------------------------------------------------------------------
 # Usage Notes & Examples (run with -h for full help):
@@ -26,7 +28,10 @@ from urllib.request import urlopen
 #
 # Retrieve news of entire week in scrolling feed:
 #  $ news.py --less
-#
+
+
+#---------------------------------------------------------------------------------------------------
+# Terminal output formatter
 #---------------------------------------------------------------------------------------------------
 
 class Term:
@@ -82,6 +87,9 @@ class Term:
             indent_args['subsequent_indent'] = ' ' * (self.indent * (list_lvl - 1) + 2)
         return textwrap.fill(line, self.width, break_long_words=False, **indent_args)
 
+#---------------------------------------------------------------------------------------------------
+# Wikipedia news fetcher & parser
+#---------------------------------------------------------------------------------------------------
 
 class WikiNews:
     ''' Class for parsing Wikipedia news, as per specification (https://w.wiki/DA2e). '''
@@ -100,15 +108,19 @@ class WikiNews:
         'Sports':                      '🏀'
     }
 
-    # base URL of English Wikipedia
-    URL = 'https://en.wikipedia.org/wiki/'
+    # Wikipedia URLs
+    BASEURL   = 'https://en.wikipedia.org/'
+    WIKIURL   = f'{BASEURL}wiki/'
+    NEWSURL   = f'{WIKIURL}Portal:Current_events/%s?action=raw'
+    APIURL    = f'{BASEURL}w/api.php'
+    EXPANDURL = f'{APIURL}?action=expandtemplates&prop=wikitext&format=json&text=%s'
 
     # unit separator; delimits links with hidden URLs
     DELIM = '\x1F'
 
     # fragments of regex patterns
     HYPERLINK   = r'\[(?P<url>[^ []+)( (?P<htxt>.+?))?\]'
-    WIKILINK    = r'\[\[(?P<dest>.+?)(\| *(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
+    WIKILINK    = r'\[\[(?P<dest>[^[]+?)(\| *(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
 
     # compiled regex patterns
     BOLD =       re.compile("'''(?P<txt>.+?)'''", flags=re.DOTALL)
@@ -118,6 +130,7 @@ class WikiNews:
     HIDDENLINK = re.compile(f'{DELIM}(?P<txt>.+?){DELIM}', flags=re.DOTALL)
     ITAL =       re.compile("''(?P<txt>.+?)''", flags=re.DOTALL)
     LINK =       re.compile(f'(?P<wiki>{WIKILINK})|(?P<hyper>{HYPERLINK})')
+    TEMPLATE =   re.compile(r'\{\{(?P<txt>.+?)\}\}')
 
     def __init__(self, day, heading_icons=True):
         self.heading_icons = heading_icons
@@ -126,7 +139,7 @@ class WikiNews:
         # retrieve news for given day from Wikipedia as list of lines
         day_str = day.strftime('%Y_%B_%-d')
         try:
-            with urlopen(f'{WikiNews.URL}Portal:Current_events/{day_str}?action=raw') as req:
+            with fetch(WikiNews.NEWSURL % day_str) as req:
                 # decode & trim non-content
                 self.news = bytes(req.read()).decode('utf-8').split('\n')[3:-1]
         except (HTTPError, URLError) as err:
@@ -140,6 +153,9 @@ class WikiNews:
 
         for l, line in enumerate(self.news):
             if not line.strip(): continue
+
+            # expand templates
+            line = WikiNews.TEMPLATE.sub(lambda m: WikiNews.__expand_template(m.group(0)), line)
 
             # conceal link URLs for better line wrapping
             urls = []
@@ -193,8 +209,7 @@ class WikiNews:
             text += m.group('suffix') or ''
 
             # obtain full URL for Wikilink
-            target = quote(url.replace(' ', '_'))
-            url = f'{WikiNews.URL}{target}'
+            url = WikiNews.WIKIURL + escape(url.replace(' ', '_'))
 
         else: # link is external
             url, text = m.group('url'), m.group('htxt') or m.group('url')
@@ -211,6 +226,27 @@ class WikiNews:
         urls.insert(0, url)
         return text
 
+    @staticmethod
+    def __strip_html(text):
+        ''' Strip HTML tags from given text. '''
+        data = []
+        strip_html = HTMLParser()
+        strip_html.handle_data = data.append
+        strip_html.feed(text)
+        return ''.join(data)
+
+    @staticmethod
+    def __expand_template(template):
+        ''' Expand given template using Wikipedia API; strip output of HTML tags. '''
+        try:
+            with fetch(WikiNews.EXPANDURL % escape(template)) as req:
+                response = json(bytes(req.read()).decode('utf-8'))
+                return WikiNews.__strip_html(response['expandtemplates']['wikitext'])
+        except: return template # fall back to returning input unaltered
+
+#---------------------------------------------------------------------------------------------------
+# Global functions for printing news in parallel
+#---------------------------------------------------------------------------------------------------
 
 async def get_news(day, heading_icons):
     ''' Asynchronously retrieve news headlines from Wikipedia for given day. '''
@@ -230,6 +266,10 @@ async def print_news(days, term, heading_icons=True, less=False):
         print(term.heading(day.strftime('%A, %-d %B %Y')) + '\n')
         print(term.fmt('fetching...', Term.DIM, Term.ITAL) * loadmsg, end='', flush=True)
         print(term.backspace(11) * loadmsg + await news[d])
+
+#---------------------------------------------------------------------------------------------------
+# Main routine for parsing arguments
+#---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     # create argument parser & parse args
@@ -251,7 +291,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # create terminal formatter
-    width = args.width or min(int(0.8 * get_terminal_size((120, 24)).columns), 120)
+    width = args.width or min(int(0.8 * term_size((120, 24)).columns), 120)
     term = Term(width, args.indent, args.compact, None if args.ansi == 'auto' else args.ansi == 'y')
 
     try:
