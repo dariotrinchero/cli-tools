@@ -14,7 +14,7 @@ from shutil import get_terminal_size as term_size
 
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote as escape
-from urllib.request import urlopen as fetch
+from urllib.request import urlopen, Request
 
 #---------------------------------------------------------------------------------------------------
 # Usage Notes & Examples (run with -h for full help):
@@ -115,6 +115,10 @@ class WikiNews:
     APIURL    = f'{BASEURL}w/api.php'
     EXPANDURL = f'{APIURL}?action=expandtemplates&prop=wikitext&format=json&text=%s'
 
+    # urlopen wrapper with spoofed User-Agent header
+    HEADERS={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:143.0) Gecko/20100101 Firefox/143.0'}
+    FETCH = lambda url: urlopen(Request(url, headers=WikiNews.HEADERS))
+
     # unit separator; delimits links with hidden URLs
     DELIM = '\x1F'
 
@@ -139,7 +143,7 @@ class WikiNews:
         # retrieve news for given day from Wikipedia as list of lines
         day_str = day.strftime('%Y_%B_%-d')
         try:
-            with fetch(WikiNews.NEWSURL % day_str) as req:
+            with WikiNews.FETCH(WikiNews.NEWSURL % day_str) as req:
                 # decode & trim non-content
                 self.news = bytes(req.read()).decode('utf-8').split('\n')[3:-1]
         except (HTTPError, URLError) as err:
@@ -239,7 +243,7 @@ class WikiNews:
     def __expand_template(template):
         ''' Expand given template using Wikipedia API; strip output of HTML tags. '''
         try:
-            with fetch(WikiNews.EXPANDURL % escape(template)) as req:
+            with WikiNews.FETCH(WikiNews.EXPANDURL % escape(template)) as req:
                 response = json(bytes(req.read()).decode('utf-8'))
                 return WikiNews.__strip_html(response['expandtemplates']['wikitext'])
         except: return template # fall back to returning input unaltered
