@@ -12,8 +12,11 @@ of these tools more convenient and intuitive for whatever highly-specific applic
 
 ### Description of Scripts
 
-* `distribute.py` - made for *Toyota Yarris* sound-system; arranges mp3 files alphabetically into
-  directories of 255 each, and compares the files with those in `~/Music`
+* `appa-yip-yip.py` - copies combination of random & recent music tracks from `~/Music` onto USB
+  drive (automatically detected), replacing all files on the drive; this is to keep a fresh rotating
+  sample of a large music library available for playback on the go (being was made for the
+  *Toyota Yarris* sound-system, the script groups files into directories of 255 each, as the
+  sound-system cannot read larger directories)
 * `ergo.py` - made to assist with card game, *Ergo*; outputs a list of atomic proposition which are
   (dis)proven by a given list of premises (propositional logic sentences)
 * `shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL, based on
@@ -25,7 +28,7 @@ of these tools more convenient and intuitive for whatever highly-specific applic
   whether a given password has been leaked in a data breach
 * `repos.sh` - output summary of status of a number of git repos, all assumed to reside in
   `~/git-repos`
-* `news.py` - output recent news headlines, as scraped from Wikipedia 'current events' portal
+* `news.py` - output recent news headlines scraped from Wikipedia 'current events' portal
 
 ### Running the Scripts
 
