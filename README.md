@@ -14,7 +14,7 @@ of these tools more convenient and intuitive for whatever highly-specific applic
 
 * `appa-yip-yip.py` - copies combination of random & recent music tracks from `~/Music` onto USB
   drive (automatically detected), replacing all files on the drive; this is to keep a fresh rotating
-  sample of a large music library available for playback on the go (being was made for the
+  sample of a large music library available for playback on the go (having been made for the
   *Toyota Yarris* sound-system, the script groups files into directories of 255 each, as the
   sound-system cannot read larger directories)
 * `ergo.py` - made to assist with card game, *Ergo*; outputs a list of atomic proposition which are

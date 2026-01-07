@@ -1,5 +1,18 @@
 #!/bin/bash
 
+#-----------------------------------------------------------------------------------------------------------
+# Appa Yip Yip!
+#
+# Copies combination of random & recent music tracks from ~/Music onto USB drive (automatically detected),
+# replacing all files on the drive; this is to keep a fresh rotating sample of a large music library
+# available for playback on the go. Having been made for the Toyota Yarris sound-system, the script groups
+# files into directories of 255 each, as the sound-system cannot read larger directories. Files matching
+# any regex patterns in ~/Music/.appa-nope-nope are ignored.
+#
+# See additional configuration options below.
+#
+#-----------------------------------------------------------------------------------------------------------
+
 set -euo pipefail # for safety: exit immediately if any command fails
 
 #-----------------------------------------------------------------------------------------------------------
@@ -9,7 +22,7 @@ set -euo pipefail # for safety: exit immediately if any command fails
 src=~/Music
 
 num_recent=40
-num_random=280
+num_random=360
 
 # organize files into directories of at most this many files
 batch_size=255
@@ -58,6 +71,7 @@ mapfile -t recent < <(
 mapfile -t random < <(
     find "$src" -type f -iname '*.mp3' \
     | grep -vxFf <(printf '%s\n' "${recent[@]}") \
+	| { [[ -f "$src/.appa-nope-nope" ]] && grep -vE -f "$src/.appa-nope-nope" || cat; } \
     | shuf -n "$num_random"
 )
 mapfile -t files < <(
