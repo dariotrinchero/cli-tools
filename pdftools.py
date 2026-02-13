@@ -37,7 +37,7 @@ def replace(args):
 
         # Build regex pattern to find text, possibly ignoring qdf formatting characters
         if args.verbatim: regex = re.escape(args.find_text)
-        else: regex = '(\)-?[.0-9]*\()?'.join(list(args.find_text.replace(' ', '')))
+        else: regex = r'(\)-?[.0-9]*\()?'.join(list(args.find_text.replace(' ', '')))
 
         if args.ignore_case: pattern = re.compile(bytes(regex, encoding='utf-8'), re.IGNORECASE)
         else: pattern = re.compile(bytes(regex, encoding='utf-8'))
