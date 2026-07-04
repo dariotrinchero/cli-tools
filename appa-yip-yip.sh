@@ -65,8 +65,9 @@ echo -e "${PRE}Collecting $num_recent recent tracks & $num_random random tracks.
 mapfile -t recent < <(
     find "$src" -type f -iname '*.mp3' -printf '%T@ %p\n' \
     | sort -nr \
-    | head -n "$num_recent" \
-    | cut -d' ' -f2-
+    | cut -d' ' -f2- \
+	| { [[ -f "$src/.appa-nope-nope" ]] && grep -vE -f "$src/.appa-nope-nope" || cat; } \
+    | head -n "$num_recent"
 )
 mapfile -t random < <(
     find "$src" -type f -iname '*.mp3' \
@@ -94,7 +95,7 @@ echo -e "${PRE}Transferring $total_files files in $batches batches of ≤$batch_
 for ((i=0; i<${#files[@]}; i+=batch_size)); do
 	echo -e "${NC}${PRE}Beginning batch $((batch++)).${DIM}"
     subdir="$dst/$((i/batch_size+1))x255"
-    rsync -a --progress \
+    rsync -ah --progress \
       --files-from=<(printf '%s\n' "${files[@]:i:batch_size}" | sed "s|^$src/||") \
       "$src"/ "$subdir"/
 done
