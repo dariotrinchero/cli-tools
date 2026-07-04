@@ -28,6 +28,8 @@ of these tools more convenient and intuitive for whatever highly-specific applic
   whether a given password has been leaked in a data breach
 * `repos.sh` - output summary of status of a number of git repos, all assumed to reside in
   `~/git-repos`
+* `scan-music.py` - scan `~/Music` for files that deviate from `[artist] - [title] - [album].mp3`
+  naming convention
 * `news.py` - output recent news headlines scraped from Wikipedia 'current events' portal
 
 ### Running the Scripts
