@@ -1,54 +1,73 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import struct
 import sys
 
-#---------------------------------------------------------------------------------------------------
-# Description
-#---------------------------------------------------------------------------------------------------
-#
-# Create playlist(s) containing every .mp3 in ~/Music whose filename deviates from the convention
-#
-#    "[artist] - [title] - [album].mp3",
-#
-# after applying Clementine's filename transformations (see filename_from_tags()), for easy batch
-# application of Clementine's built-in "Organize files..." operation (this is the preferred method
-# of fixing misnamed files as it preserves metadata in Clementine's internal database).
-#
+DESC_STR = """\
 
-# --- Configurable parameters ----------------------------------------------------------------------
+description:
+  Create playlist(s) containing every .mp3 in given directory whose filename
+  deviates from given format (after Clementine's filename transformations), for
+  easy batch application of Clementine's built-in "Organize files..." operation
+  (preferred method of fixing misnamed files as it preserves Clementine's
+  metadata), as follows:
 
-MUSIC_DIR     = "~/Music"    # directory to scan
-BATCH_SIZE    = 500          # files per playlist (0 for single playlist)
-PLAYLIST_NAME = "reorganize" # name (stem) of playlist(s) in which to collate misnamed files
+    1. Preferences > Music Library > DISABLE "Monitor the library for changes".
+    2. Import playlist (Playlist > Load playlist...).
+    3. Select tracks; Right click > Organize files...; set options:
+       - After copying...: Delete the original files
+       - Naming options: eg. "%artist - %title - %album.%extension" (match FMT)
+       - Overwrite existing files: DISABLED
+    4. Check file names look valid, then run.
+    5. Repeat steps 2-4 for each playlist generated.
+    6. Tools > Do a full library rescan.
+    7. Once scan is complete, relaunch "All tracks" smart playlist, & confirm
+       that number of tracks matches number of .mp3 files in ~/Music.
+"""
 
+DBG_STR = """\
 
-# --- Main logic -----------------------------------------------------------------------------------
+debugging:
+  If duplicate tracks appear in Clementine (from neglecting step 1), they can
+  be fixed manually by editing the SQLite database:
+  
+  $ pkill clementine
+  $ cp ~/.config/Clementine/clementine.db clementine.db.bak # create backup
+  $ sqlite3 ~/.config/Clementine/clementine.db
+  $ sqlite> .headers on
+  $ sqlite> .mode line
+  $ sqlite> SELECT rowid, filename, directory, unavailable, mtime FROM songs
+            WHERE title = 'Radio'; -- examine duplicate (change example title)
+  $ sqlite> DELETE FROM songs WHERE rowid NOT IN (SELECT MIN(rowid) FROM songs
+            GROUP BY filename); -- proceed with deletion
+  $ sqlite> .quit
+"""
+
+#---- Primary logic --------------------------------------------------------------------------------
 
 # Clementine's "kInvalidFatCharacters"
 _SANITIZE = str.maketrans({c: "_" for c in '"*/\\:<>?|'})
 
 
-def filename_from_tags(tags: dict[str, str]) -> str:
+def filename_from_tags(tags: dict[str, str], fmt: str) -> str:
     r"""
-    Given ID3 tags, return filename in format "[artist] - [title] - [album].mp3", applying
-    Clementine's filename transformations (defined in core/organiseformat.cpp of Clementine src):
+    Given ID3 tags, return filename in given format, applying Clementine's filename transformations
+    (defined in core/organiseformat.cpp of Clementine src):
 
       1. each of * " / \ : < > ? | becomes '_';
       2. tag value of 0 or -1 becomes empty;
       3. leading '.' in the name becomes '_'.
     """
-    def sanitize(tag: str) -> str:
-        v = tags.get(tag) or ""
-        return ("" if v in ("0", "-1") else v).translate(_SANITIZE)
-
-    name = " - ".join(sanitize(k) for k in ("artist", "title", "album"))
+    sanitize = lambda v: ("" if v in ("0", "-1") else v).translate(_SANITIZE)
+    sanitized_tags = {t: sanitize(v) for t, v in tags.items()}
+    name = fmt.format(**sanitized_tags)
     if name.startswith("."): name = "_" + name[1:]
     return name + ".mp3"
 
 
-def write_playlists(paths: list[str], stem: str = PLAYLIST_NAME, batch: int = BATCH_SIZE):
+def write_playlists(paths: list[str], stem: str, batch: int):
     """
     Produce playlist(s) of misnamed tracks for easier batch application of Clementine's "Organize
     files..." operation to these files.
@@ -61,7 +80,7 @@ def write_playlists(paths: list[str], stem: str = PLAYLIST_NAME, batch: int = BA
         yield name, len(chunk)
 
 
-def collect_misnamed(music_dir: str = MUSIC_DIR) -> None:
+def collect_misnamed(music_dir: str, fmt: str, plst_stem: str, batch_size: int) -> None:
     """
     Create playlist(s) with all misnamed MP3 songs in given directory; report progress.
     """
@@ -75,18 +94,18 @@ def collect_misnamed(music_dir: str = MUSIC_DIR) -> None:
         if not (file.lower().endswith(".mp3") and os.path.isfile(path)): continue
         
         try:
-            if file != (expected := filename_from_tags(ID3.read(path))):
+            if file != (expected := filename_from_tags(ID3.read(path), fmt)):
                 mismatched.append(path)
                 print(f"{path}\n  expected: {expected}")
 
         except Exception as e: print(f"{path}\n  ERROR: {e}")
 
-    print(f"\n{len(mismatched)} mismatch(es).", file=sys.stderr)
-    for name, count in write_playlists(mismatched):
+    print(f"\n{len(mismatched)} mismatch(es)", file=sys.stderr)
+    for name, count in write_playlists(mismatched, plst_stem, batch_size):
         print(f"wrote {name} ({count} tracks)", file=sys.stderr)
 
 
-# --- ID3 tag parser -------------------------------------------------------------------------------
+#---- ID3 tag parser -------------------------------------------------------------------------------
 
 class ID3:
     """ Minimal dependency-free reader for the artist/title/album tags. """
@@ -153,6 +172,21 @@ class ID3:
         return {"title": fld(tag[3:33]), "artist": fld(tag[33:63]), "album": fld(tag[63:93])}
 
 
-# --- Main entry -----------------------------------------------------------------------------------
+#---- Main entry -----------------------------------------------------------------------------------
 
-if __name__ == "__main__": collect_misnamed()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=DESC_STR, epilog=DBG_STR,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('--fmt', default='{artist} - {title} - {album}',
+        help='filename format (default: "{artist} - {title} - {album}")')
+    parser.add_argument('--dir', default='~/Music', help='directory to scan (default: "~/Music")')
+    parser.add_argument('--playlist', dest='lst', default='reorg',
+        help='name (stem) of playlist(s) (default: "reorg")')
+    parser.add_argument('--batch', dest='size', type=int, default=500,
+        help='tracks per playlist (default: 500; use 0 for single playlist)')
+
+    args = parser.parse_args()
+
+    collect_misnamed(args.dir, args.fmt, args.lst, args.size)
+    print("please view documentation before renaming in Clementine (run with -h)", file=sys.stderr)

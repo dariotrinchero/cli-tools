@@ -21,8 +21,8 @@ set -euo pipefail # for safety: exit immediately if any command fails
 
 src=~/Music
 
-num_recent=40
-num_random=360
+num_recent=55
+num_random=345
 
 # organize files into directories of at most this many files
 batch_size=255
