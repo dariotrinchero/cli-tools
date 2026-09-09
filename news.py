@@ -127,14 +127,15 @@ class WikiNews:
     WIKILINK    = r'\[\[(?P<dest>[^[]+?)(\| *(?P<wtxt>.+?))?\]\](?P<suffix>[a-zA-Z]*)'
 
     # compiled regex patterns
-    BOLD =       re.compile("'''(?P<txt>.+?)'''", flags=re.DOTALL)
-    BRACKET =    re.compile(r'\((?P<txt>.+?)\)', flags=re.DOTALL)
-    BULLET =     re.compile(r'^\*+')
-    HEADING =    re.compile("^'''(?P<txt>.+)'''$")
+    BOLD       = re.compile("'''(?P<txt>.+?)'''", flags=re.DOTALL)
+    BRACKET    = re.compile(r'\((?P<txt>.+?)\)', flags=re.DOTALL)
+    BULLET     = re.compile(r'^\*+')
+    COMMENT    = re.compile('<!--.*?-->', flags=re.DOTALL)
+    HEADING    = re.compile("^'''(?P<txt>.+)'''$")
     HIDDENLINK = re.compile(f'{DELIM}(?P<txt>.+?){DELIM}', flags=re.DOTALL)
-    ITAL =       re.compile("''(?P<txt>.+?)''", flags=re.DOTALL)
-    LINK =       re.compile(f'(?P<wiki>{WIKILINK})|(?P<hyper>{HYPERLINK})')
-    TEMPLATE =   re.compile(r'\{\{(?P<txt>.+?)\}\}')
+    ITAL       = re.compile("''(?P<txt>.+?)''", flags=re.DOTALL)
+    LINK       = re.compile(f'(?P<wiki>{WIKILINK})|(?P<hyper>{HYPERLINK})')
+    TEMPLATE   = re.compile(r'\{\{(?P<txt>.+?)\}\}')
 
     def __init__(self, day, heading_icons=True):
         self.heading_icons = heading_icons
@@ -156,7 +157,9 @@ class WikiNews:
             return
 
         for l, line in enumerate(self.news):
-            if not line.strip(): continue
+            # remove comments & whitespace padding
+            line = WikiNews.COMMENT.sub('', line).strip()
+            if not line: continue
 
             # expand templates
             line = WikiNews.TEMPLATE.sub(lambda m: WikiNews.__expand_template(m.group(0)), line)
