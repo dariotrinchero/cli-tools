@@ -5,18 +5,21 @@ performing.
 
 ## Overview
 
-Scripts range from highly specific in utility (such as `distribute.py`) to fairly broad (such as
+Scripts range from highly specific in utility (such as `appa-yip-yip.py`) to fairly broad (such as
 `pdftools.py`). Certain script functionality is little but a wrapper for a pre-existing command line
 utility like `qpdf`; in such cases, the script is designed to simplify the syntax and make the use
 of these tools more convenient and intuitive for whatever highly-specific application I require.
 
 ### Description of Scripts
 
-* `appa-yip-yip.py` - copies combination of random & recent music tracks from `~/Music` onto USB
-  drive (automatically detected), replacing all files on the drive; this is to keep a fresh rotating
-  sample of a large music library available for playback on the go (having been made for the
-  *Toyota Yarris* sound-system, the script groups files into directories of 255 each, as the
-  sound-system cannot read larger directories)
+* `appa-yip-yip.py` - interactive app which copies combination of random & recent `.mp3` tracks
+  from top level of `~/Music` onto USB drive (automatically detected), replacing all files on the
+  drive; this is to keep a fresh rotating sample of a large music library available for playback
+  on the go (having been made for the *Toyota Yaris* sound-system, the script groups files into
+  directories of 255 each, as the sound-system cannot read larger directories); selection can be
+  reviewed before writing, with recent tracks excluded, random tracks swapped or redrawn, and the
+  number of each adjusted; files matching any regex patterns in `~/Music/.appa-nope-nope` are
+  ignored
 * `ergo.py` - made to assist with card game, *Ergo*; outputs a list of atomic proposition which are
   (dis)proven by a given list of premises (propositional logic sentences)
 * `shortcut.py` - creates cross-platform, browser independent internet shortcut for a URL, based on
@@ -30,7 +33,8 @@ of these tools more convenient and intuitive for whatever highly-specific applic
   `~/git-repos`
 * `scan-music.py` - scan `~/Music` for files that deviate from `[artist] - [title] - [album].mp3`
   naming convention
-* `news.py` - output recent news headlines scraped from Wikipedia 'current events' portal
+* `wikly.py` - interactive terminal reader for the past week of news from Wikipedia's
+  'current events' portal
 
 ### Running the Scripts
 
@@ -52,14 +56,17 @@ flags. Argument parsing is done in Python using the `argparse` module, and all a
 thoroughly documented. To view detailed help, simply execute a script with the `-h` or `--help`
 flag.
 
+The exceptions are the interactive terminal apps, `appa-yip-yip.py` and `wikly.py`, which take no
+arguments; these are instead configured by editing the config block at the top of the script, and
+list their key bindings on screen.
+
 ## Prerequisites
 
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
-
-## Known Issues
-
-* `distribute.py` is not very robust. Manually rearranging the files in each of the
-  generated folders can break the alphabetical ordering.
+* `appa-yip-yip.py` requires command line tool `lsblk` (part of `util-linux`) to detect USB drive,
+  so is Linux only
+* `wikly.py` uses `xdg-open` (or `open` on macOS) to open links, and `wl-copy`, `xclip`, `xsel` or
+  `pbcopy` to copy headlines to clipboard; news can still be read without these
 
 ## Contributing
 

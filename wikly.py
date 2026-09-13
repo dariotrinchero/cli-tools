@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #---------------------------------------------------------------------------------------------------
-# Newswire
+# Wikly
 #---------------------------------------------------------------------------------------------------
 #
 # A curses reader for the Wikipedia "Portal:Current events" feed (cf. https://w.wiki/DA2e). Each day
@@ -36,7 +36,7 @@ from urllib.request import Request, urlopen
 
 #---- config ---------------------------------------------------------------------------------------
 
-APP_NAME = "Newswire"
+APP_NAME = "Wikly"
 VERSION  = "1.0.0"
 
 DAYS       = 7         # days of news to load, ending today
@@ -52,7 +52,7 @@ TOAST_SECONDS = 2.5
 SPINNER       = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 BULLETS       = ("▸", "•", "◦", "·")
 
-USER_AGENT = (f"newswire/{VERSION} (+https://en.wikipedia.org/wiki/Portal:Current_events) "
+USER_AGENT = (f"wikly/{VERSION} (+https://en.wikipedia.org/wiki/Portal:Current_events) "
               f"Python-urllib/{sys.version_info.major}.{sys.version_info.minor}")
 
 # Exhaustive; cf. https://w.wiki/DA2e.  An icon that the font draws wider than curses counts
@@ -87,7 +87,7 @@ LINK_HINTS = ("⏎ open · ↑↓ other links in this headline · q back to read
 R_TEXT, R_HEAD, R_LINK, R_SRC, R_DIM, R_RULE, R_BULLET, R_WARN = range(8)
 F_BOLD, F_ITAL, F_MARK = 1, 2, 4
 
-SLATE, AMBER, AQUA, ROSE, GREY, INK = "4a7a96", "ffbe62", "7fffd4", "e0656f", "6b6b6b", "1c1c1c"
+AZURE, AMBER, AQUA, ROSE, GREY, INK = "73afeb", "ffbe62", "7fffd4", "e0656f", "6b6b6b", "1c1c1c"
 C_BAR, C_BORDER, C_TAB, C_HEAD, C_LINK, C_DIM, C_WARN, C_MARK, C_FOCUS = range(1, 10)
 
 _slots: dict[str, int] = {}
@@ -120,9 +120,9 @@ ROLE_ATTR: dict[int, int] = {}
 def init_colors():
     curses.start_color()
     curses.use_default_colors()
-    slate, amber, aqua, rose, grey, ink_ = (ink(c) for c in (SLATE, AMBER, AQUA, ROSE, GREY, INK))
+    azure, amber, aqua, rose, grey, ink_ = (ink(c) for c in (AZURE, AMBER, AQUA, ROSE, GREY, INK))
 
-    for pair, fore, back in ((C_BAR, ink_, slate), (C_BORDER, slate, -1), (C_TAB, ink_, amber),
+    for pair, fore, back in ((C_BAR, ink_, azure), (C_BORDER, azure, -1), (C_TAB, ink_, amber),
                              (C_HEAD, amber, -1), (C_LINK, aqua, -1), (C_DIM, grey, -1),
                              (C_WARN, rose, -1), (C_MARK, ink_, aqua), (C_FOCUS, ink_, amber)):
         curses.init_pair(pair, fore, back)
@@ -1232,9 +1232,9 @@ class App:
 
 def main() -> int:
     if sys.argv[1:]:
-        sys.exit(f"newswire takes no arguments; see the config block in "
+        sys.exit(f"wikly takes no arguments; see the config block in "
                  f"{os.path.basename(__file__)}")
-    if not sys.stdout.isatty(): sys.exit("newswire needs an interactive terminal")
+    if not sys.stdout.isatty(): sys.exit("wikly needs an interactive terminal")
 
     locale.setlocale(locale.LC_ALL, "")
     os.environ.setdefault("ESCDELAY", "25")

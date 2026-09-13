@@ -5,7 +5,7 @@
 #
 # Copies combination of random & recent music tracks from ~/Music onto USB drive (automatically
 # detected), replacing all files on the drive; this is to keep a fresh rotating sample of a large
-# music library available for playback on the go. Having been made for the Toyota Yarris sound-
+# music library available for playback on the go. Having been made for the Toyota Yaris sound-
 # system, the script groups files into directories of 255 each, as the sound-system cannot read
 # larger directories. Files matching any regex patterns in ~/Music/.appa-nope-nope are ignored.
 #
