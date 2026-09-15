@@ -3,7 +3,7 @@
 import re
 import argparse
 from enum import IntEnum, Flag, auto
-from sys import argv, exit
+from sys import argv
 
 ops = ['=>', 'v', '^', '~'] # order of increasing precedence
 atomics = 'abcd'
@@ -46,7 +46,7 @@ def scanner(expression):
     ''' Yield tokens from given expression. '''
     if not hasattr(scanner, 'pattern'):
         ops_re = "|".join(map(re.escape, ops))
-        scanner.pattern = re.compile(f'{ops_re}|[{atomics}]|\\(|\\)|\s')
+        scanner.pattern = re.compile(f'{ops_re}|[{atomics}]|\\(|\\)|\\s')
 
     start, length = 0, len(expression)
     if length == 0: error(0, 'empty expression')

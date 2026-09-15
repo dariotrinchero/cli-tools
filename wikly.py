@@ -7,7 +7,9 @@
 # is fetched in a background thread & parsed into a small document model -- groups, nested items,
 # styled inline cells -- which is then laid out into the reader: one tab per day, headlines grouped
 # under the category headings of the portal, & every link in a headline reachable from the keyboard.
-# The two axes swap over (t): a tab per category, with the days as the headings within it.
+# The two axes swap over (t): a tab per category, with the days as the headings within it. Or the
+# nesting can be flattened (f): only the stories themselves, with the topics above each one shown as
+# a breadcrumb in the footer.
 #
 # There are no command line arguments; the config block below sets what is loaded & how it looks.
 #
@@ -42,6 +44,7 @@ VERSION  = "1.0.0"
 DAYS       = 7         # days of news to load, ending today
 TEXT_WIDTH = 96        # widest the text column is allowed to grow
 COMPACT    = False     # start without the blank lines between headlines
+FLAT       = False     # start with only the stories, their topics moved to the footer
 ICONS      = True      # emoji beside the category headings
 
 WORKERS = 4 # parallel fetches
@@ -51,6 +54,7 @@ RETRIES = 3
 TOAST_SECONDS = 2.5
 SPINNER       = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 BULLETS       = ("▸", "•", "◦", "·")
+CRUMB         = " > "  # between the topics of a flattened story's breadcrumb
 
 USER_AGENT = (f"wikly/{VERSION} (+https://en.wikipedia.org/wiki/Portal:Current_events) "
               f"Python-urllib/{sys.version_info.major}.{sys.version_info.minor}")
@@ -71,7 +75,7 @@ CATEGORIES = { # icon, & the short name used when the categories become tabs
 }
 OTHER = ("📰", "Other")
 
-HINTS = ("↑↓ read · ←→ {tab} · ⏎ links · t group · / find · ? help · q quit",
+HINTS = ("↑↓ read · ←→ {tab} · ⏎ links · t group · f flat · / find · ? help · q quit",
          "↑↓ · ←→ {tab} · ⏎ links · / find · ? help · q quit",
          "⏎ links · / find · ? help · q quit",
          "? help · q quit")
@@ -178,9 +182,11 @@ def clip(text: str, width: int) -> str:
     return out
 
 
-def fit(text: str, width: int, centre: bool = False) -> str:
+def fit(text: str, width: int, centre: bool = False, tail: bool = False) -> str:
+    """Pad text to width, truncating its end -- or with tail, its start -- if it will not fit."""
     if width <= 0: return ""
-    if dwidth(text) > width: text = clip(text, width - 1) + "…"
+    if dwidth(text) > width:
+        text = "…" + clip(text[::-1], width - 1)[::-1] if tail else clip(text, width - 1) + "…"
     pad = max(0, width - dwidth(text))
     return " " * (pad // 2) + text + " " * (pad - pad // 2) if centre else text + " " * pad
 
@@ -487,6 +493,7 @@ class View:
     rows: list[Row] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
     where: list[tuple[str, str]] = field(default_factory=list)       # group title & key, per item
+    trails: list[tuple[str, ...]] = field(default_factory=list)      # the topics above each item
     spans: dict[int, tuple[int, int]] = field(default_factory=dict)  # item -> first & last row
     leads: dict[int, int] = field(default_factory=dict)              # item -> start of its block
 
@@ -574,8 +581,9 @@ def rule(title: str, icon: str, width: int) -> list[Cell]:
     return [Cell("──", R_RULE), Cell(label, R_HEAD, F_BOLD), Cell("─" * tail, R_RULE)]
 
 
-def render(groups: list[Group], width: int, compact: bool = False, icons: bool = True) -> View:
-    """Lay out groups of headlines at the given text width."""
+def render(groups: list[Group], width: int, compact: bool = False, icons: bool = True,
+           flat: bool = False) -> View:
+    """Lay out groups of headlines at the given text width; flat keeps only the innermost ones."""
     view = View()
 
     def add(cells=(), item=-1): view.rows.append(Row(list(cells), item))
@@ -586,22 +594,30 @@ def render(groups: list[Group], width: int, compact: bool = False, icons: bool =
             add(rule(group.title, group.icon if icons else "", width))
             add()
 
-        previous = 0
-        for item in group.items:
+        previous, above = 0, []
+        for number, item in enumerate(group.items):
+            while above and above[-1].level >= item.level: above.pop()
+            trail = tuple(" ".join(parent.text.split()).rstrip(":") for parent in above)
+            above.append(item)
+            after = group.items[number + 1] if number + 1 < len(group.items) else None
+            if flat and after and after.level > item.level: continue # a topic, not a story
+
             index = len(view.items)
             view.items.append(item)
             view.where.append((group.title, group.key))
+            view.trails.append(trail)
 
+            level = 1 if flat else item.level
             if view.rows and view.rows[-1].cells and not compact:
-                if item.level <= 1 or item.level < previous: add()
+                if level <= 1 or level < previous: add()
 
-            pad = "  " * min(item.level - 1, max(0, (width - 8) // 2))
-            glyph = BULLETS[min(item.level, len(BULLETS)) - 1]
+            pad = "  " * min(level - 1, max(0, (width - 8) // 2))
+            glyph = BULLETS[min(level, len(BULLETS)) - 1]
             head = f"{pad}{glyph} "
-            role = R_BULLET if item.level == 1 else R_DIM
+            role = R_BULLET if level == 1 else R_DIM
             for line in wrap_cells(item.cells, width, head, " " * dwidth(head), role):
                 add(line, index)
-            previous = item.level
+            previous = level
 
     for number, row in enumerate(view.rows):  # the first & last row of each headline ...
         if row.item >= 0:
@@ -685,20 +701,20 @@ class Pane:
 
 HELP = [
     ("↑ ↓   j k",     "move between headlines"),
-    ("PgUp PgDn",     "scroll by a screenful"),
+    ("PgUp PgDn",     "scroll by screenful"),
     ("g G",           "first / last headline"),
     ("← →   h l",     "previous / next tab  (also Tab, ⇧Tab)"),
-    ("1 … 9",         "jump straight to a tab"),
-    ("t",             "regroup: a tab per day, or a tab per category"),
-    ("+",             "load one more day, older than any loaded yet"),
-    ("⏎   o",         "step into the links of the selected headline"),
-    ("↑↓ ⏎ q",        "inside: choose a link, open it, step back out"),
-    ("/",             "search this tab;  n N  step through matches"),
-    ("y",             "copy the headline to the clipboard"),
+    ("1 … 9",         "jump straight to tab"),
+    ("t",             "regroup: tab per day, or tab per category"),
+    ("f",             "flatten: only show stories, with topics in footer"),
     ("c",             "toggle compact spacing"),
+    ("+",             "load another day of news"),
+    ("⏎   o",         "step into links of selected headline"),
+    ("↑↓ ⏎ q",        "inside: choose link, open it, step back out"),
+    ("/",             "search this tab;  n N  step through matches"),
+    ("y",             "copy headline to clipboard"),
     ("r   R",         "reload this day / every day"),
-    ("?",             "this help"),
-    ("^L",            "repaint the screen"),
+    ("^L",            "repaint screen"),
     ("q   Esc",       "quit"),
 ]
 
@@ -715,7 +731,7 @@ class App:
         self.panes: dict[tuple[str, str], Pane] = {}
         self.fresh = 0                        # bumped whenever the fetched news changes
 
-        self.cap, self.compact, self.icons = TEXT_WIDTH, COMPACT, ICONS
+        self.cap, self.compact, self.icons, self.flat = TEXT_WIDTH, COMPACT, ICONS, FLAT
         self.toast = self.link = self.typing = None
         self.search = ""
         self.helping, self.running = False, True
@@ -814,13 +830,25 @@ class App:
     def view(self) -> View:
         """The open tab, laid out for this terminal; rebuilt only when something moves."""
         pane = self.pane
-        shape = (self.column(self.scr.getmaxyx()[1])[0], self.compact, self.icons, self.fresh)
+        shape = (self.column(self.scr.getmaxyx()[1])[0], self.compact, self.icons, self.flat,
+                 self.fresh)
         if pane.view is None or pane.shape != shape:
-            pane.view = render(self.groups(), shape[0], self.compact, self.icons)
+            groups, old = self.groups(), pane.view
+            pane.view = render(groups, shape[0], self.compact, self.icons, self.flat)
             pane.shape = shape
-            pane.sel = min(pane.sel, max(0, len(pane.view.items) - 1))
+            pane.sel = self.relocate(groups, old, pane.sel, pane.view)
             self.follow()
         return pane.view
+
+    @staticmethod
+    def relocate(groups: list[Group], old: View | None, sel: int, new: View) -> int:
+        """Keep the selection on the same headline across a relayout; a topic that flattening
+        hides hands it on to its first story."""
+        last = max(0, len(new.items) - 1)
+        if not old or sel >= len(old.items): return min(sel, last)
+        order = {id(item): n for n, item in enumerate(i for g in groups for i in g.items)}
+        if (at := order.get(id(old.items[sel]))) is None: return min(sel, last) # refetched
+        return next((n for n, item in enumerate(new.items) if order[id(item)] >= at), last)
 
     def follow(self):
         """Scroll the minimum needed to bring the selected headline into view."""
@@ -910,8 +938,9 @@ class App:
     # --- search ---------------------------------------------------------
     def hits(self) -> list[int]:
         if not self.search: return []
-        needle = self.search.lower()
-        return [i for i, item in enumerate(self.view().items) if needle in item.text.lower()]
+        needle, view = self.search.lower(), self.view()
+        return [i for i, item in enumerate(view.items) if needle in item.text.lower()
+                or self.flat and any(needle in topic.lower() for topic in view.trails[i])]
 
     def commit_search(self):
         self.search, self.typing = (self.typing or "").strip(), None
@@ -1087,8 +1116,10 @@ class App:
             put(self.scr, y0 + row, w - 1, glyph, curses.color_pair(C_BORDER))
 
     def breadcrumb(self) -> str:
+        """The selected headline's group, or when flattened the topics it was nested under."""
         view = self.pane.view
         if not view or not view.items: return ""
+        if self.flat and (trail := view.trails[self.pane.sel]): return CRUMB.join(trail)
         return view.where[self.pane.sel][0] or "Headlines"
 
     def draw_footer(self, y, w):
@@ -1096,13 +1127,13 @@ class App:
         if self.typing is not None:
             put(self.scr, y, 1, fit(f"/{self.typing}▏", w - 2), curses.color_pair(C_HEAD), w - 2)
             return
-        toast = self.live_toast()
+        toast, tail = self.live_toast(), False
         if toast:
             left, attr = f"● {toast[0]}", ROLE_ATTR.get(toast[1], 0) or curses.A_BOLD
         elif self.link is not None:
             left, attr = self.focus_url(), curses.color_pair(C_LINK)
-        else:
-            left, attr = self.breadcrumb(), curses.color_pair(C_DIM)
+        else: # a breadcrumb gives up its outermost topics first
+            left, attr, tail = self.breadcrumb(), curses.color_pair(C_DIM), self.flat
 
         tiers = LINK_HINTS if self.link is not None else HINTS
         hints = next((h for h in tiers if dwidth(h) + 12 <= w), tiers[-1]).format(tab=self.mode)
@@ -1112,7 +1143,7 @@ class App:
         else:
             put(self.scr, y, x, hints, curses.color_pair(C_DIM), w - 1 - x)
         if toast or x - 3 > 8:
-            put(self.scr, y, 1, fit(left, x - 3), attr, x - 3)
+            put(self.scr, y, 1, fit(left, x - 3, tail=tail), attr, x - 3)
 
     def draw_help(self, h, w):
         """The key list, in a rounded box over the panel."""
@@ -1199,6 +1230,10 @@ class App:
         elif key == ord("n"): self.step_match(1)
         elif key == ord("N"): self.step_match(-1)
         elif key == ord("y"): self.copy()
+        elif key == ord("f"):
+            self.flat = not self.flat
+            self.notify("only the stories, topics in the footer" if self.flat
+                        else "stories nested under their topics", R_DIM)
         elif key == ord("c"):
             self.compact = not self.compact
             self.notify("compact spacing" if self.compact else "roomy spacing", R_DIM)
