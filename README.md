@@ -33,6 +33,11 @@ of these tools more convenient and intuitive for whatever highly-specific applic
   `~/git-repos`
 * `scan-music.py` - scan `~/Music` for files that deviate from `[artist] - [title] - [album].mp3`
   naming convention
+* `twoey.py` - interactive terminal reader for YouTube subscriptions, fetched from each channel's
+  RSS feed (no account or API key needed); new videos are listed newest first and marked watched
+  once opened, channels whose feeds failed to fetch are flagged, and channels can be subscribed to
+  by pasting any link to a channel, video or playlist; subscriptions are kept in `~/.twoey-urls`,
+  one per line, which is fine to edit by hand
 * `wikly.py` - interactive terminal reader for the past week of news from Wikipedia's
   'current events' portal
 
@@ -56,15 +61,18 @@ flags. Argument parsing is done in Python using the `argparse` module, and all a
 thoroughly documented. To view detailed help, simply execute a script with the `-h` or `--help`
 flag.
 
-The exceptions are the interactive terminal apps, `appa-yip-yip.py` and `wikly.py`, which take no
-arguments; these are instead configured by editing the config block at the top of the script, and
-list their key bindings on screen.
+The exceptions are the interactive terminal apps, `appa-yip-yip.py`, `twoey.py` and `wikly.py`,
+which take no arguments; these are instead configured by editing the config block at the top of
+the script, and list their key bindings on screen.
 
 ## Prerequisites
 
 * `pdftools.py` requires command line tool [QPDF](http://qpdf.sourceforge.net/)
 * `appa-yip-yip.py` requires command line tool `lsblk` (part of `util-linux`) to detect USB drive,
   so is Linux only
+* `twoey.py` uses `xdg-open` (or `open` on macOS) to open videos, and `wl-copy`/`wl-paste`,
+  `xclip`, `xsel` or `pbcopy`/`pbpaste` to copy links and to fill in a pasted link when
+  subscribing; subscriptions can still be read and managed without these
 * `wikly.py` uses `xdg-open` (or `open` on macOS) to open links, and `wl-copy`, `xclip`, `xsel` or
   `pbcopy` to copy headlines to clipboard; news can still be read without these
 

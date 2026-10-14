@@ -23,6 +23,7 @@ import json
 import locale
 import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -30,10 +31,12 @@ import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from functools import lru_cache
+from http.client import HTTPSConnection
 from typing import NamedTuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPSHandler, Request, build_opener
 
 
 #---- config ---------------------------------------------------------------------------------------
@@ -156,6 +159,7 @@ def attr_for(cell: "Cell", selected: bool = False, focused: bool = False) -> int
 
 #---- text measurement -----------------------------------------------------------------------------
 
+@lru_cache(maxsize=8192)
 def dwidth(text: str) -> int:
     """Cells a string occupies, counted exactly as wcwidth -- & so curses -- counts them.
 
@@ -163,7 +167,11 @@ def dwidth(text: str) -> int:
     Ambiguous codepoint plus a variation selector, such as U+2694 U+FE0F.  Curses still
     advances one cell for those, so claiming two here would misplace everything drawn
     after them; give such an icon a trailing space in CATEGORIES instead.
+
+    Nearly all that is drawn passes through here, much of it unchanged from the last
+    repaint; hence the cache, & the shortcut for plain ASCII.
     """
+    if text.isascii(): return len(text)
     total = 0
     for ch in text:
         if unicodedata.category(ch) in ("Mn", "Me", "Cf"): continue
@@ -415,6 +423,32 @@ def crude_expand(template: str) -> str:
     return " ".join(a.strip() for a in args if a.strip() and "=" not in a.split("[")[0])
 
 
+def connect(address, timeout=socket.getdefaulttimeout(), source_address=None, **_):
+    """socket.create_connection, but trying IPv4 addresses first: where IPv6 is routed but does
+    not get through, urllib otherwise waits out the whole timeout on every request (curl
+    races the two instead)."""
+    host, port = address
+    problem: OSError = OSError(f"could not resolve {host}")
+    for *_, where in sorted(socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM),
+                            key=lambda info: info[0] != socket.AF_INET):
+        try: return socket.create_connection(where[:2], timeout, source_address)
+        except OSError as exc: problem = exc
+    raise problem
+
+
+class IPv4First(HTTPSConnection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._create_connection = connect # http.client sets this per connection, in __init__
+
+
+class IPv4FirstHandler(HTTPSHandler):
+    def https_open(self, req): return self.do_open(IPv4First, req, context=self._context)
+
+
+OPENER = build_opener(IPv4FirstHandler)
+
+
 class Wiki:
     """Fetches & parses days of the current events portal. Safe to share across threads."""
 
@@ -431,14 +465,14 @@ class Wiki:
         for attempt in range(RETRIES):
             try:
                 request = Request(url, data=body, headers={"User-Agent": USER_AGENT})
-                with urlopen(request, timeout=TIMEOUT) as response:
+                with OPENER.open(request, timeout=TIMEOUT) as response:
                     return response.read().decode("utf-8", "replace")
             except HTTPError as exc:
                 if exc.code < 500 and exc.code != 429: raise
                 problem = exc
             except (URLError, OSError) as exc:
                 problem = exc
-            time.sleep(0.4 * 2 ** attempt)
+            if attempt + 1 < RETRIES: time.sleep(0.4 * 2 ** attempt)
 
         raise problem
 
@@ -1242,6 +1276,12 @@ class App:
         elif key == ord("?"): self.helping = True
         elif key == 12: self.scr.redrawwin() # ^L, for a screen left dirty by something else
 
+    def read(self) -> tuple[int, object] | None:
+        """The next key, as its code & the character typed, or None once the timeout runs out."""
+        try: ch = self.scr.get_wch()
+        except curses.error: return None
+        return (ord(ch) if isinstance(ch, str) else ch), ch
+
     def run(self):
         for st in self.days: self.fetch(st)
 
@@ -1251,14 +1291,13 @@ class App:
                 self.draw()
                 busy = any(st.future is not None for st in self.days)
                 self.scr.timeout(80 if busy else (200 if self.toast else -1))
-                try: ch = self.scr.get_wch()
-                except curses.error: continue # timed out; loop round & repaint
-
-                key = ord(ch) if isinstance(ch, str) else ch
-                if key == curses.KEY_RESIZE:
-                    self.scr.redrawwin()
-                    continue
-                self.handle(key, ch)
+                got = self.read()
+                self.scr.timeout(0)
+                while got and self.running: # all the keys already waiting (a held ↓, say), then
+                    key, ch = got           # one repaint, so that the screen never falls behind
+                    if key == curses.KEY_RESIZE: self.scr.redrawwin()
+                    else: self.handle(key, ch)
+                    got = self.read()
         finally:
             self.pool.shutdown(wait=False, cancel_futures=True)
 
