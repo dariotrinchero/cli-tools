@@ -659,7 +659,7 @@ HELP = [
     ("⏎   o",       "launch video, or list channel's videos"),
     ("space",       "toggle new / watched"),
     ("s",           "sort: by channel, or by date"),
-    ("i",           "info: description, views, status of last fetch"),
+    ("i",           "Seymou— ahem. see more info: description, views, etc"),
     ("a",           "add subscription (from link)"),
     ("d",           "delete highlighted subscription (Channels tab)"),
     ("e",           f"edit subscription file: {URLS_FILE}"),
