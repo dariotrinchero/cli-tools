@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
-from tkinter import Tk # Read clipboard contents
+from tkinter import Tk, TclError # Read clipboard contents
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 from html import unescape
-import requests
+import socket
 import re
 
 #---------------------------------------------------------------------------------------------------
@@ -45,11 +47,13 @@ class Tfmt:
 def get_clipboard():
     ''' Get current contents of clipboard. '''
     print(f'{Tfmt.WARN}Getting URL from clipboard (use --url to specify URL){Tfmt.ENDC}')
-    tk = Tk()
-    tk.withdraw()
-    clipboard = tk.clipboard_get()
-    tk.update()
-    tk.destroy()
+    try:
+        tk = Tk()
+        tk.withdraw()
+        clipboard = tk.clipboard_get()
+        tk.update()
+        tk.destroy()
+    except TclError: exit(f'{Tfmt.FAIL}Cannot read text from clipboard{Tfmt.ENDC}')
     return clipboard
 
 def get_site(url):
@@ -60,15 +64,20 @@ def get_site(url):
     except: exit(f'{Tfmt.FAIL}Invalid URL: "{url}"{Tfmt.ENDC}')
     return parsed.netloc
 
+# Try IPv4 addresses first, as urllib tries addresses in order and IPv6 can hang on some networks
+_getaddrinfo = socket.getaddrinfo
+socket.getaddrinfo = lambda *args, **kwargs: sorted(_getaddrinfo(*args, **kwargs),
+        key=lambda addr: addr[0] != socket.AF_INET)
+
 def get_title(url, site, trim=True):
     ''' Get title of page at given URL, optionally trimming names of known sites. '''
     global known_sites
     print(f'{Tfmt.WARN}Getting name from URL (use --name to specify name){Tfmt.ENDC}')
 
     try:
-        response = requests.get(url=url, timeout=10, headers={'user-agent': 'shortcut/1.0.1'})
-        response.raise_for_status()
-        title = unescape(re.search('<\W*title\W*(.*)\W*</title', response.text, re.IGNORECASE).group(1))
+        with urlopen(Request(url, headers={'user-agent': 'shortcut/1.0.1'}), timeout=10) as response:
+            text = response.read().decode(response.headers.get_content_charset() or 'utf-8', 'replace')
+        title = unescape(re.search(r'<\W*title\W*(.*)\W*</title', text, re.IGNORECASE).group(1))
 
         # Optionally remove known site names from title
         if site in known_sites and trim:
@@ -77,17 +86,19 @@ def get_title(url, site, trim=True):
             title = re.sub(subs[0], subs[1], title)
 
         return title
-    except requests.exceptions.HTTPError:
-        errmsg = f'Request to "{url}" returned bad status code {response.status_code}'
-    except requests.exceptions.Timeout: errmsg = f'Request to "{url}" timed-out'
-    except requests.exceptions.ConnectionError: errmsg = f'Connection error accessing "{url}"'
-    except requests.exceptions.TooManyRedirects: errmsg = f'Too many redirects accessing "{url}"'
+    except HTTPError as e: # urllib gives up on redirect loops with a 3xx HTTPError
+        if 300 <= e.code < 400: errmsg = f'Too many redirects accessing "{url}"'
+        else: errmsg = f'Request to "{url}" returned bad status code {e.code}'
+    except TimeoutError: errmsg = f'Request to "{url}" timed-out'
+    except URLError as e:
+        if isinstance(e.reason, TimeoutError): errmsg = f'Request to "{url}" timed-out'
+        else: errmsg = f'Connection error accessing "{url}"'
     except: errmsg = f'Cannot extract title from "{url}"'
     exit(f'{Tfmt.FAIL}{errmsg}{Tfmt.ENDC}')
 
 def sanitize_name(name):
     ''' Sanitise given file name of illegal characters for NTFS or EXT4. '''
-    name = re.sub('[<>:"/\|?*]', '', name, flags=re.ASCII)
+    name = re.sub(r'[<>:"/\|?*]', '', name, flags=re.ASCII)
     return re.sub(' +', ' ', name).strip()[:250] # conservative ext4 max filename length
 
 def make_shortcut(url, name):
